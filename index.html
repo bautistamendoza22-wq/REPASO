@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Cuadernillo Medicina Familiar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna calma; arriba "qué toca hoy" + temporizador, abajo el índice del impreso como checklist. */
+:root{
+  --bg:#e8e3d7; --surface:#f5f1e6; --ink:#2a2620; --muted:#635d52; --line:#d5cdbb;
+  --accent:#145c50; --accent-ink:#ffffff; --accent-soft:#dbe6dc;
+  --ok:#1d7a3e; --ok-soft:#dfecd9; --warn:#8a5a00; --warn-soft:#f1e6cc; --bad:#b3261e; --bad-soft:#f1dcd3; --mixc:var(--ink); --mixp:0%;
+  --f-display:"Literata",Georgia,serif; --f-body:"Atkinson Hyperlegible",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000; --surface:#121212; --ink:#ece8e1; --muted:#a29d94; --line:#2c2c2c;
+  --accent:#5fb3a2; --accent-ink:#000000; --accent-soft:#16302b;
+  --ok:#6fd38f; --ok-soft:#12301d; --warn:#e2b257; --warn-soft:#33280f; --bad:#f08a80; --bad-soft:#3a1715; --mixp:45%; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#121212; --ink:#ece8e1; --muted:#a29d94; --line:#2c2c2c;
+  --accent:#5fb3a2; --accent-ink:#000000; --accent-soft:#16302b;
+  --ok:#6fd38f; --ok-soft:#12301d; --warn:#e2b257; --warn-soft:#33280f; --bad:#f08a80; --bad-soft:#3a1715; --mixp:45%; color-scheme:dark}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:color-mix(in oklab,var(--c) calc(100% - var(--mixp)),var(--mixc));flex:none}
+.chap>summary h3{display:flex;align-items:center;gap:8px}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:1.75rem} h2{font-size:1.3rem} h3{font-size:1.05rem}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+.save{font-size:.8rem;color:var(--muted)}
+.strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.stat b{display:block;font-family:var(--f-mono);font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums}
+.stat span{font-size:.85rem;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+
+.today{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.todo li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;min-width:0}
+.todo li.on{border-color:var(--accent);background:var(--accent-soft)}
+.todo li.done .nm{text-decoration:line-through;color:var(--muted)}
+.todo .nm{flex:1;min-width:0}
+.todo .pg{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.pick{border:0;background:none;color:var(--accent);font-weight:700;padding:4px 6px;border-radius:6px}
+.pick:hover{background:var(--accent-soft)}
+.hint{font-size:.9rem;color:var(--muted);margin:0}
+.late{font-size:.85rem;color:var(--warn);font-weight:700;margin:0}
+
+.timer{align-items:center;text-align:center}
+.clock{font-family:var(--f-mono);font-size:clamp(3rem,12vw,4.5rem);font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.phase{font-weight:700;color:var(--accent)}
+.phase.rest{color:var(--warn)}
+.now{font-family:var(--f-display);font-size:1.15rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:9px 14px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:hover{border-color:var(--accent)}
+.chip{border:1px solid var(--line);background:none;color:var(--muted);border-radius:99px;padding:4px 12px;font-size:.85rem}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.handoff{background:var(--accent-soft);border-radius:10px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:8px;width:100%}
+.handoff code{font-family:var(--f-mono);font-size:.85rem;background:var(--surface);padding:8px;border-radius:6px;display:block;white-space:pre-wrap;word-break:break-word;user-select:all}
+.pomos{font-size:.85rem;color:var(--muted)}
+
+.chap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.chap>summary{list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px 14px;cursor:pointer}
+.chap>summary::-webkit-details-marker{display:none}
+.chap>summary .bar{grid-column:1/-1}
+.chap .cnt{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.topics{list-style:none;margin:0;padding:0 8px 8px}
+.t{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 6px;border-top:1px solid var(--line)}
+.t input{width:20px;height:20px;accent-color:var(--accent)}
+.t .nm{min-width:0}
+.t.done .nm{color:var(--muted)}
+.t .pg{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);white-space:nowrap}
+.conf{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px}
+.cf{border:1px solid var(--line);background:none;color:var(--muted);border-radius:99px;padding:2px 10px;font-size:.78rem}
+.cf[data-v="ok"][aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.cf[data-v="flojo"][aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.cf[data-v="rep"][aria-pressed="true"]{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.tag{font-size:.72rem;font-weight:700;border-radius:4px;padding:1px 6px}
+.tag.flojo{background:var(--warn-soft);color:var(--warn)} .tag.rep{background:var(--bad-soft);color:var(--bad)} .tag.ok{background:var(--ok-soft);color:var(--ok)}
+.sec{display:flex;flex-direction:column;gap:12px}
+.sechead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
+textarea{width:100%;min-height:110px;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
+.settings{display:flex;flex-wrap:wrap;gap:16px;align-items:end}
+.settings label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+.settings input,.settings select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
+.fc{gap:12px;min-height:260px}
+.fc .q{font-family:var(--f-display);font-size:1.25rem;line-height:1.35}
+.fc ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.fc .ans{border-top:1px dashed var(--line);padding-top:12px}
+.fcnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.rate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rate .btn[data-r="no"]{border-color:var(--bad);color:var(--bad)}
+.rate .btn[data-r="dudo"]{border-color:var(--warn);color:var(--warn)}
+.rate .btn[data-r="ok"]{border-color:var(--ok);color:var(--ok)}
+.rate .btn[aria-pressed="true"][data-r="no"]{background:var(--bad-soft)}
+.rate .btn[aria-pressed="true"][data-r="dudo"]{background:var(--warn-soft)}
+.rate .btn[aria-pressed="true"][data-r="ok"]{background:var(--ok-soft)}
+.stack{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line)}
+.stack i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem;color:var(--muted)}
+.legend b{font-family:var(--f-mono);color:var(--ink)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+.addf{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.addf label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+.addf input,.addf select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
+.addf textarea{min-height:90px}
+.mine{font-size:.72rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.empty{color:var(--muted);font-style:italic;margin:0}
+.fc-btn{border:1px solid var(--accent);background:none;color:var(--accent);border-radius:99px;padding:2px 10px;font-size:.78rem;font-weight:700}
+.fc-btn:hover{background:var(--accent-soft)}
+@media (max-width:680px){.today{grid-template-columns:1fr}.strip{grid-template-columns:1fr 1fr}.strip .stat:last-child{grid-column:1/-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="eyebrow">Medicina Familiar · Cuadernillo 2026</div>
+      <h1>Cuadernillo, tema por tema</h1>
+    </div>
+    <div class="save" id="save" aria-live="polite">Cargando…</div>
+  </header>
+
+  <div class="strip">
+    <div class="stat"><b id="sExam">–</b><span>días al examen</span></div>
+    <div class="stat"><b id="sFin">–</b><span id="sFinLbl">días para terminar la 1ª vuelta</span></div>
+    <div class="stat"><b id="sPct">–</b><span id="sPctLbl">temas leídos</span><div class="bar" style="margin-top:8px"><i id="sBar" style="width:0"></i></div></div>
+  </div>
+
+  <section class="today">
+    <div class="panel">
+      <div class="sechead"><h2 id="hoyTitle">Hoy</h2><span class="mono pomos" id="hoyPages"></span></div>
+      <p class="late" id="late" hidden></p>
+      <ul class="todo" id="todo"></ul>
+      <p class="hint" id="hoyHint">Tocá «Leer» en un tema para cargarlo en el temporizador. El orden es libre.</p>
+    </div>
+
+    <div class="panel timer" aria-label="Temporizador">
+      <div class="row" role="group" aria-label="Duración de bloque">
+        <button class="chip" data-m="15,5" id="m15">15 / 5</button>
+        <button class="chip" data-m="25,5" id="m25">25 / 5</button>
+        <button class="chip" data-m="45,10" id="m45">45 / 10</button>
+      </div>
+      <div class="phase" id="phase">Leyendo</div>
+      <div class="clock" id="clock" aria-live="off">25:00</div>
+      <div class="now" id="now">Elegí un tema</div>
+      <div class="mono pomos" id="nowPg"></div>
+      <div class="row">
+        <button class="btn primary" id="go">Empezar</button>
+        <button class="btn" id="reset">Reiniciar</button>
+      </div>
+      <div class="handoff" id="handoff" hidden>
+        <strong>Cerrá el cuadernillo y pegá esto en tu chat con Claude:</strong>
+        <code id="msg"></code>
+        <div class="row" style="justify-content:flex-start">
+          <button class="btn" id="copy">Copiar mensaje</button>
+          <button class="btn primary" id="markRead">Marcar como leído</button>
+        </div>
+      </div>
+      <div class="pomos" id="pomos">0 bloques hoy</div>
+    </div>
+  </section>
+
+  <section class="sec" id="fcSec">
+    <div class="sechead"><h2>Flashcards</h2><span class="hint" id="fcCount"></span></div>
+    <div class="toolbar">
+      <label for="fcDeck" class="hint">Mazo</label>
+      <select id="fcDeck"></select>
+      <button class="chip" id="fcOnly" aria-pressed="false">Solo las que no sé</button>
+      <button class="chip" id="fcShuffle" aria-pressed="false">Mezclar</button>
+    </div>
+    <div class="panel fc" id="fcCard">
+      <div class="sechead"><span class="eyebrow" id="fcMeta"></span><span class="mono pomos" id="fcPos"></span></div>
+      <div class="q" id="fcQ"></div>
+      <div class="ans" id="fcA" hidden></div>
+      <button class="btn primary" id="fcShow">Mostrar respuesta</button>
+      <div class="rate" id="fcRate" hidden>
+        <button class="btn" data-r="no">No la sabía</button>
+        <button class="btn" data-r="dudo">Dudé</button>
+        <button class="btn" data-r="ok">La sabía</button>
+      </div>
+      <div class="fcnav">
+        <button class="btn" id="fcPrev" aria-label="Tarjeta anterior">← Anterior</button>
+        <button class="btn" id="fcDel" hidden>Borrar esta tarjeta</button>
+        <button class="btn" id="fcNext" aria-label="Tarjeta siguiente">Siguiente →</button>
+      </div>
+    </div>
+    <div class="stack" aria-hidden="true"><i id="fcOk" style="background:var(--ok)"></i><i id="fcDudo" style="background:var(--warn)"></i><i id="fcNo" style="background:var(--bad)"></i></div>
+    <div class="legend" id="fcLegend"></div>
+    <details class="plain">
+      <summary>Agregar mi propia tarjeta</summary>
+      <form class="addf" id="addForm">
+        <label for="nTopic">Tema
+          <select id="nTopic"></select></label>
+        <label for="nQ">Pregunta (anverso)
+          <input id="nQ" required maxlength="300" placeholder="Ej.: ¿Cuándo se indica ecografía de caderas?"></label>
+        <label for="nA">Respuesta (reverso), una idea por renglón
+          <textarea id="nA" required maxlength="2000" placeholder="Maniobras positivas&#10;Factores de riesgo: podálica, AF de DDC…"></textarea></label>
+        <div><button class="btn primary" type="submit">Agregar tarjeta</button> <span class="hint" id="addMsg" aria-live="polite"></span></div>
+      </form>
+    </details>
+  </section>
+
+  <section class="sec" id="repSec">
+    <div class="sechead"><h2>Para repasar</h2><span class="hint">Lo que marcaste «flojo» o «repasar»</span></div>
+    <div id="repList"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sechead"><h2>Índice del impreso</h2><span class="hint">Páginas según la numeración [n] del cuadernillo</span></div>
+    <div id="index" class="sec" style="gap:8px"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sechead"><h2>Anotador de distracciones</h2><span class="hint">Si se te cruza algo, anotalo y seguí leyendo</span></div>
+    <label for="notes" class="hint">Ideas, pendientes, dudas para preguntar después</label>
+    <textarea id="notes" placeholder="Ej.: contestar un mensaje · preguntar dosis de amoxicilina en otitis"></textarea>
+  </section>
+
+  <details class="plain" id="planBox">
+    <summary>Mi plan: fecha de examen, días y orden</summary>
+    <div class="settings" style="margin-top:12px">
+      <label for="cExam">Fecha del examen
+        <input type="date" id="cExam"></label>
+      <label for="cIni">Empiezo
+        <input type="date" id="cIni"></label>
+      <label for="cFin">Termino la 1ª vuelta
+        <input type="date" id="cFin"></label>
+      <label for="cRest">Día de descanso
+        <select id="cRest">
+          <option value="">Ninguno</option><option value="0">Domingo</option><option value="6">Sábado</option>
+          <option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option>
+        </select></label>
+      <label for="cOrd">Orden de los temas
+        <select id="cOrd">
+          <option value="mix">Intercalado por capítulos</option><option value="indice">Como en el índice</option>
+        </select></label>
+    </div>
+    <p class="hint" style="margin-top:10px">El plan reparte los temas que te faltan entre los días que quedan. Si un día no estudiás, no se acumula: se redistribuye solo.</p>
+    <p class="hint" id="whereSaved"></p>
+    <div class="row" style="justify-content:flex-start;margin-top:8px">
+      <button class="btn" id="resetAll">Borrar mi progreso</button>
+      <span class="hint" id="resetConfirm" hidden>¿Seguro? <button class="btn" id="resetYes">Sí, borrar</button> <button class="btn" id="resetNo">Cancelar</button></span>
+    </div>
+  </details>
+</div>
+
+
+<script>
+const EXAM_DEFAULT="2026-12-05";
+const RAW=[
+["Vacunas",[["Vacunas",3]]],
+["Controles de salud",[["Control niño sano menor de 1 año",5],["Problemas frecuentes en pediatría",10],["Control niño sano 4-5",12],["Control 6 a 12 años",13],["Adolescencia",14],["Apto físico",17],["Atención integral de la persona trans",18],["Baja talla",22],["Control de salud adulto",23],["Control de adulto mayor (>65 años)",27],["Queja cognitiva",32],["Caídas en el adulto mayor",37],["Osteoporosis",38]]],
+["Salud sexual y reproductiva",[["Control preconcepcional",41],["Control de embarazo",42],["Patologías frecuentes del embarazo",46],["Síntomas frecuentes en el embarazo",48],["Pautas anticipatorias",50],["Puerperio",51],["Puerperio patológico",54],["IVE/ILE",55],["Métodos anticonceptivos",56],["ITS con flujo",61],["ITS con lesión genital",64],["Enfermedad pélvica inflamatoria",66],["HIV",68],["ITS en embarazadas",69],["Toxoplasmosis",71],["SUA",72],["Amenorrea",74],["Menopausia / Climaterio",75]]],
+["Vía aérea superior / oftalmológicos",[["Ojo rojo",77],["Sinusitis",80],["Enfermedad tipo influenza",81],["Resfrío",82],["Laringitis",83],["COVID-19",83],["Otitis",85],["Cerumen impactado",87],["Faringoamigdalitis aguda",88],["Síndrome mononucleósido",91],["Rinitis alérgica / no alérgica",91]]],
+["Problemas respiratorios",[["Tos",95],["IRAB en niños",96],["IRAB en adultos",103],["Asma",106],["EPOC",115],["Tuberculosis",118],["Nódulo pulmonar solitario",121]]],
+["Lesiones de piel",[["Conceptos generales",123],["Urticaria",124],["Infecciones de piel no supurativas",125],["Infecciones de piel supurativas",127],["Exantemáticas en pediatría",128],["Herpangina",133],["Herpes",133],["Psoriasis",135],["Rosácea",137],["Micosis superficiales",138],["Dermatitis",141],["Escabiosis",146],["Pediculosis",147],["Acné",148]]],
+["Factores de riesgo CV / ECNT",[["Diabetes",152],["Pie diabético",155],["Hipertensión arterial",156],["Riesgo cardiovascular",159],["Dislipemia",162],["Hipertrigliceridemia",163],["ECG",164],["Tabaquismo",168],["Alcoholismo — Cirrosis",170],["Actividad física",175],["Alimentación",176],["Obesidad adultos y niños",177]]],
+["Problemas cardiovasculares",[["Soplos / soplos en niños",182],["Palpitaciones",184],["Dolor torácico",186],["Insuficiencia cardíaca",187],["Síndrome coronario agudo",190],["Insuficiencia venosa - úlcera varicosa",195]]],
+["Problemas digestivos",[["Dolor abdominal",198],["Reflujo gastroesofágico",202],["Dispepsia",203],["Gastritis",206],["Síndrome de intestino irritable",206],["Constipación",208],["Hemorroides y fisura anal",209],["Diarrea aguda",211],["Diarrea crónica",216],["Enteroparasitosis",219],["Hidatidosis",221],["Cólico biliar",223],["Cáncer de colon",224],["Hemorragias digestivas",226]]],
+["Genitourinarios y renales",[["ITU – Pielonefritis",229],["Uretritis",233],["Escroto agudo",234],["Hiperplasia prostática benigna",235],["Prostatitis",237],["Glomerulopatías",238],["GAPE",241],["Insuficiencia renal crónica",242]]],
+["Anemia, astenia y dolor",[["Anemia",244],["Astenia",247],["Dolor",248]]],
+["Osteoarticulares",[["Lumbalgia",252],["Artrosis",254],["Cervicalgia",255],["Omalgia: hombro doloroso",257],["Artritis reumatoidea",259],["Pie plano",260],["Gota",261],["Síndrome del túnel carpiano",263],["Dolor de cadera",264]]],
+["Problemas neurológicos",[["Cefalea-migraña",267],["Cefalea primaria (manejo y tto)",270],["Mareos y vértigo",272],["Parkinson",275],["Síncope",277]]],
+["Problemas endocrinológicos",[["Hipotiroidismo",282],["Hipertiroidismo",283],["Nódulo tiroideo",283],["Síndrome metabólico",284]]],
+["Medicina psicosocial",[["Depresión y ansiedad",286],["Violencia de género",292],["Acoso escolar / bullying",293],["Clínica ampliada / crisis / duelo",294],["Trastornos de la conducta alimentaria",297],["Malas noticias",298],["Maltrato infantil",299],["Insomnio",301],["Autolesiones",302]]],
+["Enfermedades en contexto de inundación",[["Diarreas y GEA",304],["Hepatitis A",306],["Leptospirosis",306],["Dengue",308],["Fiebre sin foco",310],["Accidente potencialmente rábico",310],["Ofidismo",313],["Araneismo",313],["Infecciones por mohos",314],["Heridas post inundación",314]]]
+];
+const LAST_PAGE=316;
+const CCOL=["#9F0927","#9F0927","#AD1457","#6A1B9A","#283593","#1565C0","#00838F","#2E7D32","#827717","#B8860B","#E65100","#BF360C","#6D4C41","#455A64","#C2185B","#00695C"];
+const TOPICS=[];const CHAPS=[];
+RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci});CHAPS[ci].ids.push(id)})});
+TOPICS.forEach((t,i)=>{const nx=i<TOPICS.length-1?TOPICS[i+1].p:LAST_PAGE+1;t.end=Math.max(t.p,nx-1);t.w=Math.max(.5,nx-t.p)});
+const BY=Object.fromEntries(TOPICS.map(t=>[t.id,t]));
+// Orden intercalado: un tema de cada capítulo por turno, respetando el orden interno de cada capítulo.
+const MIX=(()=>{const q=CHAPS.map(c=>c.ids.slice());const out=[];while(q.some(a=>a.length))q.forEach(a=>{if(a.length)out.push(BY[a.shift()])});return out})();
+const ORDER=()=>S.config.orden==="indice"?TOPICS:MIX;
+const pgTxt=t=>t.end>t.p?`págs. ${t.p}–${t.end}`:`pág. ${t.p}`;
+
+// Tarjetas base, verificadas contra el cuadernillo (t002 = Control niño sano menor de 1 año)
+const BASE_CARDS=[
+{id:"t002-1",t:"t002",pg:"pág. 5",q:"¿Qué se pregunta en la anamnesis (S) del control de un menor de 1 año?",a:["Genograma, contexto psicosocial, vivienda y calefacción, crisis vitales","Antecedentes perinatales; vacunas y pesquisa (en la libreta); pautas madurativas","Alimentación: lactancia, fórmula o LEV (cómo la prepara); madre: mastitis, grietas, puerperio","Pañales y catarsis; cordón; sueño (con quién, si alguien fuma o toma BZD); pantallas; anticoncepción; miedos"]},
+{id:"t002-2",t:"t002",pg:"pág. 5",q:"¿Qué pesquisas se revisan en la libreta y cuándo deben hacerse?",a:["En la libreta: OEA y prueba del talón","Metabólica: 1ª semana de vida","Auditiva: 1er mes y antes de los 3 meses (repetir si es anormal)"]},
+{id:"t002-3",t:"t002",pg:"págs. 5–6",q:"Antropometría del menor de 1 año: ¿qué valores hay que saber?",a:["Peso, talla y PC percentilados","Descenso máximo del 10%, recuperado en menos de 10 días; luego +25–30 g/día","De 4 a 6 meses: 20–25 g/día; talla ≈ 1 cm/mes entre los 4 y los 9 meses","Fontanela anterior: cierra a los 9–18 meses; posterior: al mes"]},
+{id:"t002-4",t:"t002",pg:"págs. 5–6",q:"¿Qué se busca en el examen físico (O) del menor de 1 año?",a:["Reflejo rojo: al nacer y a las 6 semanas (más fijación y seguimiento)","R1-R2 en 4 focos + pulsos femorales y braquiales; cordón","Genitales: testículos en bolsa y fimosis / sinequias","Caderas: Ortolani y Barlow en cada control del 1er año; ecografía solo con FR o hallazgos","Neurodesarrollo: reflejos arcaicos y pautas según la edad"]},
+{id:"t002-5",t:"t002",pg:"págs. 7–9",q:"¿Qué se indica en el plan (P) del control del menor de 1 año?",a:["LME a libre demanda, sin pasar 4 h entre mamadas; sueño seguro boca arriba en su cuna","Hierro: 1 mg/kg/día de 4 a 12 meses; con FR, 2 mg/kg/día de 2 a 12 meses","Vitaminas ACD al duplicar el peso o después de los 4 meses; vacunas pendientes","Fiebre en menores de 3 meses = signo de gravedad; prevención de accidentes; desaconsejar tabaquismo pasivo","Desarrollo: 1 área levemente afectada → estimulación; 2 o más → derivación"]}
+];
+const allCards=()=>BASE_CARDS.concat((S.custom||[]).map(c=>Object.assign({mine:true,pg:BY[c.t]?pgTxt(BY[c.t]):""},c)));
+
+// ---------- estado ----------
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const today=()=>iso(new Date());
+const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+function studyDays(from,to){const r=[];const rest=S.config.descanso;let d=parse(from);const end=parse(to);while(d<=end){if(rest===""||String(d.getDay())!==rest)r.push(iso(d));d.setDate(d.getDate()+1)}return r}
+const fmtDay=s=>parse(s).toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+
+// ---------- estado: cada persona guarda el suyo ----------
+// Por defecto: empieza hoy y termina la 1ª vuelta 2 semanas antes del examen.
+const fresh=()=>({temas:{},cards:{},custom:[],notas:"",config:{examen:EXAM_DEFAULT,inicio:today(),fin:addDays(EXAM_DEFAULT,-14),descanso:"0",orden:"mix"},pomos:{}});
+const norm=d=>{const f=fresh();const o=Object.assign(f,JSON.parse(JSON.stringify(d||{})));o.config=Object.assign(fresh().config,o.config||{});o.temas=o.temas||{};o.cards=o.cards||{};o.custom=o.custom||[];return o};
+let S=fresh();
+const LS="medfam-cuadernillo-v1";
+const LOCAL="Tu progreso se guarda en este navegador";
+try{const s=localStorage.getItem(LS);if(s)S=norm(JSON.parse(s))}catch(e){}
+let db=null,ref=null,saving=false,dirty=false,saveTimer=null;
+const $=id=>document.getElementById(id);
+function setSave(t){$("save").textContent=t}
+function persist(){
+  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+  if(!ref){setSave(LOCAL);return}
+  dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(flush,700);setSave("Guardando…");
+}
+async function flush(){
+  if(!ref||saving||!dirty)return;saving=true;dirty=false;
+  try{await ref.set(JSON.parse(JSON.stringify(S)));setSave("Guardado en tu cuenta")}
+  catch(e){if(e&&e.code==="invalid_argument"){ref=null;setSave(LOCAL)}else setSave("No se pudo guardar en tu cuenta; quedó en este navegador")}
+  saving=false;if(dirty)flush();
+}
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use){setSave(LOCAL);return}
+    const [dbx,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
+    if(!dbx||!user){setSave(LOCAL);return}
+    const uid=await user.id();if(!uid){setSave(LOCAL);return}
+    db=dbx;const mine=db.doc("data/users/"+uid+"/progreso");
+    let first=true;
+    mine.onSnapshot(async snap=>{
+      if(snap.metadata.hasPendingWrites)return;
+      if(snap.exists){if(!dirty&&!saving){S=norm(snap.data());try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){};render()}}
+      else if(first){
+        // primera vez en esta cuenta: traer lo que haya en el navegador (o el progreso viejo del dueño)
+        let had=Object.keys(S.temas).length||Object.keys(S.cards).length||S.custom.length;
+        if(!had){try{if(await Promise.resolve(user.isOwner())){const o=await db.doc("estudio/progreso").get();if(o.exists){S=norm(o.data());had=true;render()}}}catch(e){}}
+        ref=mine;if(had){dirty=true;flush()}
+      }
+      ref=mine;first=false;if(!dirty&&!saving)setSave("Guardado en tu cuenta");render();
+    },()=>{ref=null;setSave(LOCAL)});
+  }catch(e){setSave(LOCAL)}
+})();
+
+// plan dinámico: temas no leídos (+ los leídos hoy) repartidos por páginas entre los días que quedan
+function planToday(){
+  const t=today(),c=S.config;
+  const start=t<c.inicio?c.inicio:t;
+  if(start>c.fin)return{phase:"repaso",items:[],day:start};
+  const days=studyDays(start,c.fin);
+  const pool=ORDER().filter(x=>{const s=S.temas[x.id];return !s||!s.d||s.d===t});
+  if(!days.length)return{phase:"descanso",items:[],day:start};
+  const isRest=days[0]!==start;
+  const total=pool.reduce((a,x)=>a+x.w,0);const per=total/days.length;
+  const items=[];let acc=0;
+  for(const x of pool){if(items.length&&acc+x.w/2>per)break;items.push(x);acc+=x.w}
+  return{phase:isRest?"descanso":"lectura",items,day:days[0],per,remainingDays:days.length};
+}
+
+// ---------- render ----------
+let current=null;
+function setTopic(id,k,v){S.temas[id]=Object.assign({},S.temas[id]||{},{[k]:v});persist();render()}
+function confButtons(id){
+  const c=(S.temas[id]||{}).c||"";
+  return [["ok","Lo sé"],["flojo","Flojo"],["rep","Repasar"]].map(([v,l])=>`<button class="cf" data-id="${id}" data-v="${v}" aria-pressed="${c===v}">${l}</button>`).join("");
+}
+function render(){
+  const t=today();
+  const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
+  const EXAM=S.config.examen||EXAM_DEFAULT;
+  $("eyebrow").textContent="Medicina Familiar · examen "+parse(EXAM).toLocaleDateString("es-AR",{day:"numeric",month:"long"});
+  $("sExam").textContent=Math.max(0,diff(t,EXAM));
+  const df=diff(t,S.config.fin);
+  $("sFin").textContent=df>=0?df+1:"✓";
+  $("sFinLbl").textContent=df>=0?`días para terminar la 1ª vuelta (${parse(S.config.fin).toLocaleDateString("es-AR",{day:"numeric",month:"numeric"})})`:"1ª vuelta: etapa de repaso";
+  $("sPct").textContent=`${done}/${TOPICS.length}`;
+  $("sBar").style.width=(done/TOPICS.length*100)+"%";
+
+  const p=planToday();const ul=$("todo");ul.innerHTML="";
+  $("late").hidden=true;
+  if(p.phase==="repaso"){
+    $("hoyTitle").textContent="Hoy: repaso";$("hoyPages").textContent="";
+    const rep=TOPICS.filter(x=>["flojo","rep"].includes((S.temas[x.id]||{}).c));
+    const left=TOPICS.filter(x=>!(S.temas[x.id]||{}).d);
+    const list=left.concat(rep).slice(0,6);
+    $("hoyHint").textContent=left.length?`Te quedan ${left.length} temas sin leer: arrancá por esos.`:"Repasá lo marcado como flojo o repasar. Pedime preguntas sobre esos temas.";
+    list.forEach(x=>ul.appendChild(todoItem(x,t)));
+    if(!list.length)ul.innerHTML='<li class="empty">Nada pendiente. Pedime un caso clínico simulado.</li>';
+  }else if(p.phase==="descanso"){
+    $("hoyTitle").textContent="Hoy descansás";$("hoyPages").textContent="";
+    $("hoyHint").textContent=`Lo próximo, ${fmtDay(p.day)}:`;
+    p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
+  }else{
+    const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
+    $("hoyTitle").textContent=t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy";
+    $("hoyPages").textContent=`≈ ${pages} págs.`;
+    $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. El orden es libre.";
+    p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
+    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ≈ ${Math.round(p.per)} págs. por día`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
+  }
+  if(!current&&ul.querySelector("li[data-id]:not(.done)"))selectTopic(ul.querySelector("li[data-id]:not(.done)").dataset.id,false);
+  else if(current)showCurrent();
+
+  // índice
+  const ix=$("index");const open=new Set([...ix.querySelectorAll("details[open]")].map(d=>d.dataset.ci));
+  ix.innerHTML="";
+  CHAPS.forEach((ch,ci)=>{
+    const n=ch.ids.filter(id=>(S.temas[id]||{}).d).length;
+    const d=document.createElement("details");d.className="chap";d.dataset.ci=ci;if(open.has(String(ci)))d.open=true;
+    d.innerHTML=`<summary><h3><span class="dot" style="--c:${ch.col}"></span>${ch.name}</h3><span class="cnt">${n}/${ch.ids.length}</span><div class="bar"><i style="width:${n/ch.ids.length*100}%"></i></div></summary><ul class="topics"></ul>`;
+    const ul2=d.querySelector("ul");
+    ch.ids.forEach(id=>{const x=BY[id];const s=S.temas[id]||{};
+      const li=document.createElement("li");li.className="t"+(s.d?" done":"");
+      const nc=allCards().filter(c=>c.t===id).length;
+      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${nc?`<button class="fc-btn" data-deck="${id}">Tarjetas (${nc})</button>`:""}</div>`;
+      ul2.appendChild(li)});
+    ix.appendChild(d)});
+
+  // repaso
+  const rl=$("repList");const rep=TOPICS.filter(x=>["flojo","rep"].includes((S.temas[x.id]||{}).c));
+  rl.innerHTML=rep.length?"":'<p class="empty">Cuando marques un tema como «flojo» o «repasar», aparece acá.</p>';
+  if(rep.length){const u=document.createElement("ul");u.className="todo";
+    rep.sort((a,b)=>((S.temas[a.id].c==="rep")?0:1)-((S.temas[b.id].c==="rep")?0:1));
+    rep.forEach(x=>{const c=S.temas[x.id].c;const li=document.createElement("li");li.dataset.id=x.id;
+      li.innerHTML=`<span class="tag ${c}">${c==="rep"?"Repasar":"Flojo"}</span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span><button class="pick" data-pick="${x.id}">Leer</button>`;u.appendChild(li)});
+    rl.appendChild(u)}
+
+  if(document.activeElement!==$("notes"))$("notes").value=S.notas||"";
+  $("cExam").value=EXAM;$("cIni").value=S.config.inicio;$("cFin").value=S.config.fin;$("cRest").value=S.config.descanso;$("cOrd").value=S.config.orden||"mix";
+  $("pomos").textContent=`${(S.pomos||{})[t]||0} bloques hoy`;
+  $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
+  renderFc();
+}
+
+// ---------- flashcards ----------
+let fcDeck="all",fcOnly=false,fcShuf=false,fcIdx=0,fcShown=false,fcList=[],fcSeed=Math.random();
+function fcRebuild(){
+  let l=allCards().filter(c=>fcDeck==="all"||c.t===fcDeck);
+  if(fcOnly)l=l.filter(c=>((S.cards[c.id]||{}).r)!=="ok");
+  if(fcShuf){const h=s=>{let x=0;for(const ch of s+fcSeed)x=(x*31+ch.charCodeAt(0))|0;return x};l=l.slice().sort((a,b)=>h(a.id)-h(b.id))}
+  fcList=l;if(fcIdx>=l.length)fcIdx=Math.max(0,l.length-1);
+}
+function renderFc(){
+  const cards=allCards();const decks=[...new Set(cards.map(c=>c.t))];
+  const sel=$("fcDeck");const want=["all",...decks].join("|");
+  if(sel.dataset.k!==want){sel.innerHTML=`<option value="all">Todas (${cards.length})</option>`+decks.map(d=>`<option value="${d}">${BY[d].n} (${cards.filter(c=>c.t===d).length})</option>`).join("");sel.dataset.k=want}
+  if(fcDeck!=="all"&&!decks.includes(fcDeck))fcDeck="all";sel.value=fcDeck;
+  $("fcOnly").setAttribute("aria-pressed",fcOnly);$("fcShuffle").setAttribute("aria-pressed",fcShuf);
+  fcRebuild();
+  const pool=cards.filter(c=>fcDeck==="all"||c.t===fcDeck);
+  const cnt={ok:0,dudo:0,no:0};pool.forEach(c=>{const r=(S.cards[c.id]||{}).r;if(r)cnt[r]++});
+  const n=pool.length||1;
+  $("fcOk").style.width=cnt.ok/n*100+"%";$("fcDudo").style.width=cnt.dudo/n*100+"%";$("fcNo").style.width=cnt.no/n*100+"%";
+  $("fcLegend").innerHTML=`<span>La sé <b>${cnt.ok}</b></span><span>Dudé <b>${cnt.dudo}</b></span><span>No la sé <b>${cnt.no}</b></span><span>Sin responder <b>${pool.length-cnt.ok-cnt.dudo-cnt.no}</b></span>`;
+  $("fcCount").textContent=`${cards.length} tarjetas`;
+  const c=fcList[fcIdx];
+  if(!c){$("fcMeta").textContent="";$("fcPos").textContent="";$("fcQ").textContent=fcOnly?"Ya marcaste todas como sabidas en este mazo.":"No hay tarjetas en este mazo.";$("fcA").hidden=true;$("fcShow").hidden=true;$("fcRate").hidden=true;$("fcDel").hidden=true;return}
+  const x=BY[c.t];
+  $("fcMeta").innerHTML="";const dot=document.createElement("span");dot.className="dot";dot.style.setProperty("--c",CHAPS[x.ci].col);dot.style.marginRight="6px";
+  $("fcMeta").append(dot,document.createTextNode(`${x.n} · ${c.pg||pgTxt(x)}`));
+  if(c.mine){const m=document.createElement("span");m.className="mine";m.textContent=" · mía";$("fcMeta").append(m)}
+  $("fcPos").textContent=`${fcIdx+1}/${fcList.length}`;
+  $("fcQ").textContent=c.q;
+  const ul=document.createElement("ul");(c.a||[]).forEach(t=>{const li=document.createElement("li");li.textContent=t;ul.appendChild(li)});
+  $("fcA").innerHTML="";$("fcA").appendChild(ul);
+  $("fcA").hidden=!fcShown;$("fcShow").hidden=fcShown;$("fcRate").hidden=!fcShown;
+  const r=(S.cards[c.id]||{}).r;$("fcRate").querySelectorAll("[data-r]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.r===r));
+  $("fcDel").hidden=!c.mine;
+  $("fcPrev").disabled=fcIdx===0;$("fcNext").disabled=fcIdx>=fcList.length-1;
+}
+$("fcDeck").onchange=e=>{fcDeck=e.target.value;fcIdx=0;fcShown=false;renderFc()};
+$("fcOnly").onclick=()=>{fcOnly=!fcOnly;fcIdx=0;fcShown=false;renderFc()};
+$("fcShuffle").onclick=()=>{fcShuf=!fcShuf;fcSeed=Math.random();fcIdx=0;fcShown=false;renderFc()};
+$("fcShow").onclick=()=>{fcShown=true;renderFc();$("fcRate").querySelector('[data-r="ok"]').focus()};
+$("fcPrev").onclick=()=>{if(fcIdx>0){fcIdx--;fcShown=false;renderFc()}};
+$("fcNext").onclick=()=>{if(fcIdx<fcList.length-1){fcIdx++;fcShown=false;renderFc()}};
+$("fcRate").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;const c=fcList[fcIdx];if(!c)return;
+  S.cards[c.id]={r:b.dataset.r,d:today()};persist();
+  const wasLast=fcIdx>=fcList.length-1;fcRebuild();
+  if(fcOnly&&b.dataset.r==="ok"){/* sale de la lista; el índice ya apunta a la siguiente */}
+  else if(!wasLast)fcIdx++;
+  fcShown=false;render();});
+$("fcDel").onclick=()=>{const c=fcList[fcIdx];if(!c||!c.mine)return;S.custom=S.custom.filter(x=>x.id!==c.id);delete S.cards[c.id];fcShown=false;persist();render()};
+$("nTopic").innerHTML=CHAPS.map(ch=>`<optgroup label="${ch.name}">`+ch.ids.map(id=>`<option value="${id}">${BY[id].n} (${pgTxt(BY[id])})</option>`).join("")+"</optgroup>").join("");
+$("addForm").addEventListener("submit",e=>{e.preventDefault();
+  const q=$("nQ").value.trim(),a=$("nA").value.split("\n").map(s=>s.trim()).filter(Boolean),t=$("nTopic").value;
+  if(!q||!a.length){$("addMsg").textContent="Completá la pregunta y al menos un renglón de respuesta.";return}
+  S.custom=S.custom||[];S.custom.push({id:"c"+Date.now().toString(36),t,q,a});persist();
+  $("nQ").value="";$("nA").value="";$("addMsg").textContent="Tarjeta agregada.";fcDeck=t;fcIdx=allCards().filter(c=>c.t===t).length-1;fcShown=false;render();
+  setTimeout(()=>$("addMsg").textContent="",2500)});
+function todoItem(x,t){
+  const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;
+  li.className=(s.d?"done ":"")+(current===x.id?"on":"");
+  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}`;
+  return li;
+}
+
+// ---------- temporizador ----------
+let mode=[25,5];try{const m=localStorage.getItem(LS+"-mode");if(m)mode=JSON.parse(m)}catch(e){}
+let phase="read",left=mode[0]*60,running=false,tick=null,endAt=0,wake=null;
+function selectTopic(id,scroll=true){current=id;showCurrent();document.querySelectorAll("#todo li").forEach(l=>l.classList.toggle("on",l.dataset.id===id));if(scroll&&window.innerWidth<680)$("clock").scrollIntoView({behavior:"smooth",block:"center"})}
+function showCurrent(){const x=BY[current];if(!x)return;$("now").textContent=x.n;$("nowPg").textContent=pgTxt(x)+" · "+CHAPS[x.ci].name;
+  $("msg").textContent=`Terminé «${x.n}» (${pgTxt(x)}). Preguntame de a una.`}
+function drawClock(){const m=Math.floor(left/60),s=left%60;$("clock").textContent=`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  $("phase").textContent=phase==="read"?"Leyendo":"Pausa: levantate, tomá agua";$("phase").className="phase"+(phase==="rest"?" rest":"");
+  $("go").textContent=running?"Pausar":(left<(phase==="read"?mode[0]:mode[1])*60?"Seguir":"Empezar");
+  document.querySelectorAll("[data-m]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===mode.join(",")))}
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(o=>{const g=a.createGain(),os=a.createOscillator();os.frequency.value=660;g.gain.setValueAtTime(.0001,a.currentTime+o);g.gain.exponentialRampToValueAtTime(.2,a.currentTime+o+.02);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+o+.2);os.connect(g);g.connect(a.destination);os.start(a.currentTime+o);os.stop(a.currentTime+o+.22)})}catch(e){}}
+function step(){left=Math.max(0,Math.round((endAt-Date.now())/1000));drawClock();if(left>0)return;
+  clearInterval(tick);running=false;beep();
+  if(phase==="read"){const t=today();S.pomos=S.pomos||{};S.pomos={[t]:(S.pomos[t]||0)+1};persist();$("pomos").textContent=`${S.pomos[t]} bloques hoy`;
+    $("handoff").hidden=!current;phase="rest";left=mode[1]*60;start();}
+  else{phase="read";left=mode[0]*60;drawClock();}
+}
+async function start(){running=true;endAt=Date.now()+left*1000;clearInterval(tick);tick=setInterval(step,500);drawClock();
+  try{if(navigator.wakeLock&&!wake){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>wake=null)}}catch(e){}}
+$("go").onclick=()=>{if(running){running=false;clearInterval(tick);left=Math.max(0,Math.round((endAt-Date.now())/1000));drawClock()}else{if(phase==="read")$("handoff").hidden=true;start()}};
+$("reset").onclick=()=>{running=false;clearInterval(tick);phase="read";left=mode[0]*60;$("handoff").hidden=true;drawClock()};
+document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{mode=b.dataset.m.split(",").map(Number);try{localStorage.setItem(LS+"-mode",JSON.stringify(mode))}catch(e){}
+  if(!running){left=(phase==="read"?mode[0]:mode[1])*60}drawClock()});
+$("copy").onclick=async()=>{const txt=$("msg").textContent;try{await navigator.clipboard.writeText(txt);$("copy").textContent="Copiado"}catch(e){const r=document.createRange();r.selectNodeContents($("msg"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copy").textContent="Seleccionado: copialo"}setTimeout(()=>$("copy").textContent="Copiar mensaje",2000)};
+$("markRead").onclick=()=>{if(!current)return;const id=current;current=null;$("handoff").hidden=true;setTopic(id,"d",today())};
+
+// ---------- eventos ----------
+document.addEventListener("click",e=>{
+  const pk=e.target.closest("[data-pick]");if(pk){selectTopic(pk.dataset.pick);return}
+  const dk=e.target.closest("[data-deck]");if(dk){fcDeck=dk.dataset.deck;fcIdx=0;fcShown=false;renderFc();$("fcSec").scrollIntoView({behavior:"smooth",block:"start"});return}
+  const cf=e.target.closest(".cf");if(cf){const id=cf.dataset.id,v=cf.dataset.v;const cur=(S.temas[id]||{}).c;setTopic(id,"c",cur===v?"":v)}
+});
+document.addEventListener("change",e=>{
+  const cb=e.target;if(cb.matches('input[type="checkbox"][data-id]')){setTopic(cb.dataset.id,"d",cb.checked?today():null)}
+  if(cb.id==="cExam"&&cb.value){const old=S.config.examen;S.config.examen=cb.value;if(S.config.fin===addDays(old||EXAM_DEFAULT,-14))S.config.fin=addDays(cb.value,-14);persist();render()}
+  if(cb.id==="cIni"&&cb.value){S.config.inicio=cb.value;persist();render()}
+  if(cb.id==="cFin"&&cb.value){S.config.fin=cb.value;persist();render()}
+  if(cb.id==="cRest"){S.config.descanso=cb.value;persist();render()}
+  if(cb.id==="cOrd"){S.config.orden=cb.value;current=null;persist();render()}
+});
+let nt=null;$("notes").addEventListener("input",e=>{S.notas=e.target.value;clearTimeout(nt);nt=setTimeout(persist,900)});
+$("resetAll").onclick=()=>{$("resetConfirm").hidden=false;$("resetAll").hidden=true};
+$("resetNo").onclick=()=>{$("resetConfirm").hidden=true;$("resetAll").hidden=false};
+$("resetYes").onclick=()=>{S=fresh();current=null;$("resetConfirm").hidden=true;$("resetAll").hidden=false;persist();render()};
+// primera visita sin progreso: mostrar el plan abierto para que cada persona ponga sus fechas
+try{if(!localStorage.getItem(LS))$("planBox").open=true}catch(e){$("planBox").open=true}
+render();drawClock();
+setInterval(()=>{const t=today();if(t!==render._d){render._d=t;render()}},60000);render._d=today();
+</script>
+
+</body>
+</html>
