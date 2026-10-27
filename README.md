@@ -10,4 +10,4 @@ Plan de estudio del cuadernillo de Medicina Familiar 2026, tema por tema:
 
 El progreso se guarda en el navegador de cada persona.
 
-Sitio: https://bautistamendoza22-wq.github.io/repaso/
+Sitio: https://bautistamendoza22-wq.github.io/REPASO/
