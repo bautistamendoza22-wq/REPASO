@@ -151,6 +151,10 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <p class="late" id="late" hidden></p>
       <ul class="todo" id="todo"></ul>
       <p class="hint" id="hoyHint">Tocá «Leer» en un tema para cargarlo en el temporizador. El orden es libre.</p>
+      <div class="row" style="justify-content:flex-start">
+        <button class="btn" id="rnd">Temas al azar para hoy</button>
+        <button class="btn" id="rndBack" hidden>Volver al plan</button>
+      </div>
     </div>
 
     <div class="panel timer" aria-label="Temporizador">
@@ -226,6 +230,10 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 
   <section class="sec">
     <div class="sechead"><h2>Índice del impreso</h2><span class="hint">Páginas según la numeración [n] del cuadernillo</span></div>
+    <div class="row" style="justify-content:flex-start;align-items:center">
+      <button class="btn" id="markPrev">Ya leí algunos temas</button>
+      <span class="hint" id="markPrevHint" hidden>Tildá lo que ya leíste, tema por tema o con «Marcar todo el capítulo». El plan se recalcula con lo que te falta.</span>
+    </div>
     <div id="index" class="sec" style="gap:8px"></div>
   </section>
 
@@ -364,13 +372,16 @@ function planToday(){
   const start=t<c.inicio?c.inicio:t;
   if(start>c.fin)return{phase:"repaso",items:[],day:start};
   const days=studyDays(start,c.fin);
-  const pool=ORDER().filter(x=>{const s=S.temas[x.id];return !s||!s.d||s.d===t});
+  // cuentan para hoy: los no leídos y los leídos hoy como parte del plan (no los marcados como «ya leído antes»)
+  const pool=ORDER().filter(x=>{const s=S.temas[x.id];return !s||!s.d||(s.d===t&&!s.pre)});
   if(!days.length)return{phase:"descanso",items:[],day:start};
   const isRest=days[0]!==start;
   const total=pool.reduce((a,x)=>a+x.w,0);const per=total/days.length;
-  const items=[];let acc=0;
+  let items=[];let acc=0;
   for(const x of pool){if(items.length&&acc+x.w/2>per)break;items.push(x);acc+=x.w}
-  return{phase:isRest?"descanso":"lectura",items,day:days[0],per,remainingDays:days.length};
+  const random=!isRest&&S.hoy&&S.hoy.fecha===t&&Array.isArray(S.hoy.ids);
+  if(random)items=S.hoy.ids.map(id=>BY[id]).filter(Boolean);
+  return{phase:isRest?"descanso":"lectura",items,day:days[0],per,remainingDays:days.length,pool,random};
 }
 
 // ---------- render ----------
@@ -394,11 +405,15 @@ function render(){
 
   const p=planToday();const ul=$("todo");ul.innerHTML="";
   $("late").hidden=true;
+  $("rnd").hidden=p.phase==="descanso";$("rnd").textContent=p.random?"Sortear otros temas":"Temas al azar para hoy";
+  $("rndBack").hidden=!p.random;
   if(p.phase==="repaso"){
     $("hoyTitle").textContent="Hoy: repaso";$("hoyPages").textContent="";
     const rep=TOPICS.filter(x=>["flojo","rep"].includes((S.temas[x.id]||{}).c));
     const left=TOPICS.filter(x=>!(S.temas[x.id]||{}).d);
-    const list=left.concat(rep).slice(0,6);
+    const random=S.hoy&&S.hoy.fecha===t&&Array.isArray(S.hoy.ids);
+    $("rnd").textContent=random?"Sortear otros temas":"Temas al azar para hoy";$("rndBack").hidden=!random;
+    const list=random?S.hoy.ids.map(id=>BY[id]).filter(Boolean):left.concat(rep).slice(0,6);
     $("hoyHint").textContent=left.length?`Te quedan ${left.length} temas sin leer: arrancá por esos.`:"Repasá lo marcado como flojo o repasar. Pedime preguntas sobre esos temas.";
     list.forEach(x=>ul.appendChild(todoItem(x,t)));
     if(!list.length)ul.innerHTML='<li class="empty">Nada pendiente. Pedime un caso clínico simulado.</li>';
@@ -408,7 +423,7 @@ function render(){
     p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
   }else{
     const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
-    $("hoyTitle").textContent=t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy";
+    $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.random?" · al azar":"");
     $("hoyPages").textContent=`≈ ${pages} págs.`;
     $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. El orden es libre.";
     p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
@@ -423,7 +438,8 @@ function render(){
   CHAPS.forEach((ch,ci)=>{
     const n=ch.ids.filter(id=>(S.temas[id]||{}).d).length;
     const d=document.createElement("details");d.className="chap";d.dataset.ci=ci;if(open.has(String(ci)))d.open=true;
-    d.innerHTML=`<summary><h3><span class="dot" style="--c:${ch.col}"></span>${ch.name}</h3><span class="cnt">${n}/${ch.ids.length}</span><div class="bar"><i style="width:${n/ch.ids.length*100}%"></i></div></summary><ul class="topics"></ul>`;
+    const all=n===ch.ids.length;
+    d.innerHTML=`<summary><h3><span class="dot" style="--c:${ch.col}"></span>${ch.name}</h3><span class="cnt">${n}/${ch.ids.length}</span><div class="bar"><i style="width:${n/ch.ids.length*100}%"></i></div></summary><div style="padding:0 14px 8px"><button class="chip" data-chap="${ci}" data-all="${all}">${all?"Desmarcar todo el capítulo":"Marcar todo el capítulo como leído"}</button></div><ul class="topics"></ul>`;
     const ul2=d.querySelector("ul");
     ch.ids.forEach(id=>{const x=BY[id];const s=S.temas[id]||{};
       const li=document.createElement("li");li.className="t"+(s.d?" done":"");
@@ -540,11 +556,16 @@ $("markRead").onclick=()=>{if(!current)return;const id=current;current=null;$("h
 // ---------- eventos ----------
 document.addEventListener("click",e=>{
   const pk=e.target.closest("[data-pick]");if(pk){selectTopic(pk.dataset.pick);return}
+  const chb=e.target.closest("[data-chap]");if(chb){const ids=CHAPS[+chb.dataset.chap].ids;const un=chb.dataset.all==="true";const t=today();
+    ids.forEach(id=>{const s=S.temas[id]||{};if(un){S.temas[id]=Object.assign({},s,{d:null,pre:false})}else if(!s.d){S.temas[id]=Object.assign({},s,{d:t,pre:!todayIds().has(id)})}});
+    persist();render();return}
   const dk=e.target.closest("[data-deck]");if(dk){fcDeck=dk.dataset.deck;fcIdx=0;fcShown=false;renderFc();$("fcSec").scrollIntoView({behavior:"smooth",block:"start"});return}
   const cf=e.target.closest(".cf");if(cf){const id=cf.dataset.id,v=cf.dataset.v;const cur=(S.temas[id]||{}).c;setTopic(id,"c",cur===v?"":v)}
 });
 document.addEventListener("change",e=>{
-  const cb=e.target;if(cb.matches('input[type="checkbox"][data-id]')){setTopic(cb.dataset.id,"d",cb.checked?today():null)}
+  const cb=e.target;if(cb.matches('input[type="checkbox"][data-id]')){const id=cb.dataset.id;
+    // fuera del plan de hoy = «ya lo leí antes»: no suma a la lista del día
+    S.temas[id]=Object.assign({},S.temas[id]||{},cb.checked?{d:today(),pre:!todayIds().has(id)}:{d:null,pre:false});persist();render()}
   if(cb.id==="cExam"&&cb.value){const old=S.config.examen;S.config.examen=cb.value;if(S.config.fin===addDays(old||EXAM_DEFAULT,-14))S.config.fin=addDays(cb.value,-14);persist();render()}
   if(cb.id==="cIni"&&cb.value){S.config.inicio=cb.value;persist();render()}
   if(cb.id==="cFin"&&cb.value){S.config.fin=cb.value;persist();render()}
@@ -552,6 +573,19 @@ document.addEventListener("change",e=>{
   if(cb.id==="cOrd"){S.config.orden=cb.value;current=null;persist();render()}
 });
 let nt=null;$("notes").addEventListener("input",e=>{S.notas=e.target.value;clearTimeout(nt);nt=setTimeout(persist,900)});
+function todayIds(){return new Set([...document.querySelectorAll("#todo li[data-id]")].map(l=>l.dataset.id))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+$("rnd").onclick=()=>{
+  const t=today(),p=planToday();
+  let pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d);
+  if(!pool.length)pool=TOPICS.filter(x=>["flojo","rep"].includes((S.temas[x.id]||{}).c));
+  if(!pool.length){$("hoyHint").textContent="Ya leíste todos los temas y no hay ninguno marcado para repasar.";return}
+  const target=p.per||14;const pick=[];let acc=0;
+  for(const x of shuffle(pool)){if(pick.length&&acc+x.w/2>target)break;pick.push(x.id);acc+=x.w}
+  S.hoy={fecha:t,ids:pick};current=null;persist();render();
+};
+$("rndBack").onclick=()=>{S.hoy=null;current=null;persist();render()};
+$("markPrev").onclick=()=>{$("markPrevHint").hidden=false;document.querySelectorAll("#index details.chap").forEach(d=>d.open=true)};
 $("resetAll").onclick=()=>{$("resetConfirm").hidden=false;$("resetAll").hidden=true};
 $("resetNo").onclick=()=>{$("resetConfirm").hidden=true;$("resetAll").hidden=false};
 $("resetYes").onclick=()=>{S=fresh();current=null;$("resetConfirm").hidden=true;$("resetAll").hidden=false;persist();render()};
