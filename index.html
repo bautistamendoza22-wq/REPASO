@@ -390,6 +390,13 @@ function render(){
   $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
 }
 
+function todoItem(x,t){
+  const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;
+  li.className=(s.d?"done ":"")+(current===x.id?"on":"");
+  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}`;
+  return li;
+}
+
 // ---------- temporizador ----------
 let mode=[25,5];try{const m=localStorage.getItem(LS+"-mode");if(m)mode=JSON.parse(m)}catch(e){}
 let phase="read",left=mode[0]*60,running=false,tick=null,endAt=0,wake=null;
