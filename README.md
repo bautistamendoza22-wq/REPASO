@@ -7,7 +7,6 @@ Plan de estudio del cuadernillo de Medicina Familiar 2026, tema por tema:
 - Botón para sortear temas al azar para el día.
 - Marcar lo que ya leíste (tema por tema o capítulos enteros) y el plan se recalcula.
 - Temporizador de bloques de estudio (15/5, 25/5, 45/10).
-- Flashcards verificadas contra el cuadernillo, y la opción de agregar las propias.
 - Anotador de distracciones.
 - Botón de modo diurno / nocturno.
 

@@ -100,32 +100,7 @@ textarea{width:100%;min-height:110px;font:inherit;background:var(--surface);colo
 .settings label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
 .settings input,.settings select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
 details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
-.fc{gap:12px;min-height:260px}
-.fc .q{font-family:var(--f-display);font-size:1.25rem;line-height:1.35}
-.fc ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
-.fc .ans{border-top:1px dashed var(--line);padding-top:12px}
-.fcnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
-.rate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.rate .btn[data-r="no"]{border-color:var(--bad);color:var(--bad)}
-.rate .btn[data-r="dudo"]{border-color:var(--warn);color:var(--warn)}
-.rate .btn[data-r="ok"]{border-color:var(--ok);color:var(--ok)}
-.rate .btn[aria-pressed="true"][data-r="no"]{background:var(--bad-soft)}
-.rate .btn[aria-pressed="true"][data-r="dudo"]{background:var(--warn-soft)}
-.rate .btn[aria-pressed="true"][data-r="ok"]{background:var(--ok-soft)}
-.stack{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line)}
-.stack i{display:block;height:100%}
-.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem;color:var(--muted)}
-.legend b{font-family:var(--f-mono);color:var(--ink)}
-.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.toolbar select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
-.addf{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-.addf label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
-.addf input,.addf select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
-.addf textarea{min-height:90px}
-.mine{font-size:.72rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
 .empty{color:var(--muted);font-style:italic;margin:0}
-.fc-btn{border:1px solid var(--accent);background:none;color:var(--accent);border-radius:99px;padding:2px 10px;font-size:.78rem;font-weight:700}
-.fc-btn:hover{background:var(--accent-soft)}
 @media (max-width:680px){.today{grid-template-columns:1fr}.strip{grid-template-columns:1fr 1fr}.strip .stat:last-child{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -184,46 +159,6 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       </div>
       <div class="pomos" id="pomos">0 bloques hoy</div>
     </div>
-  </section>
-
-  <section class="sec" id="fcSec">
-    <div class="sechead"><h2>Flashcards</h2><span class="hint" id="fcCount"></span></div>
-    <div class="toolbar">
-      <label for="fcDeck" class="hint">Mazo</label>
-      <select id="fcDeck"></select>
-      <button class="chip" id="fcOnly" aria-pressed="false">Solo las que no sé</button>
-      <button class="chip" id="fcShuffle" aria-pressed="false">Mezclar</button>
-    </div>
-    <div class="panel fc" id="fcCard">
-      <div class="sechead"><span class="eyebrow" id="fcMeta"></span><span class="mono pomos" id="fcPos"></span></div>
-      <div class="q" id="fcQ"></div>
-      <div class="ans" id="fcA" hidden></div>
-      <button class="btn primary" id="fcShow">Mostrar respuesta</button>
-      <div class="rate" id="fcRate" hidden>
-        <button class="btn" data-r="no">No la sabía</button>
-        <button class="btn" data-r="dudo">Dudé</button>
-        <button class="btn" data-r="ok">La sabía</button>
-      </div>
-      <div class="fcnav">
-        <button class="btn" id="fcPrev" aria-label="Tarjeta anterior">← Anterior</button>
-        <button class="btn" id="fcDel" hidden>Borrar esta tarjeta</button>
-        <button class="btn" id="fcNext" aria-label="Tarjeta siguiente">Siguiente →</button>
-      </div>
-    </div>
-    <div class="stack" aria-hidden="true"><i id="fcOk" style="background:var(--ok)"></i><i id="fcDudo" style="background:var(--warn)"></i><i id="fcNo" style="background:var(--bad)"></i></div>
-    <div class="legend" id="fcLegend"></div>
-    <details class="plain">
-      <summary>Agregar mi propia tarjeta</summary>
-      <form class="addf" id="addForm">
-        <label for="nTopic">Tema
-          <select id="nTopic"></select></label>
-        <label for="nQ">Pregunta (anverso)
-          <input id="nQ" required maxlength="300" placeholder="Ej.: ¿Cuándo se indica ecografía de caderas?"></label>
-        <label for="nA">Respuesta (reverso), una idea por renglón
-          <textarea id="nA" required maxlength="2000" placeholder="Maniobras positivas&#10;Factores de riesgo: podálica, AF de DDC…"></textarea></label>
-        <div><button class="btn primary" type="submit">Agregar tarjeta</button> <span class="hint" id="addMsg" aria-live="polite"></span></div>
-      </form>
-    </details>
   </section>
 
   <section class="sec" id="repSec">
@@ -306,16 +241,6 @@ const MIX=(()=>{const q=CHAPS.map(c=>c.ids.slice());const out=[];while(q.some(a=
 const ORDER=()=>S.config.orden==="indice"?TOPICS:MIX;
 const pgTxt=t=>t.end>t.p?`págs. ${t.p}–${t.end}`:`pág. ${t.p}`;
 
-// Tarjetas base, verificadas contra el cuadernillo (t002 = Control niño sano menor de 1 año)
-const BASE_CARDS=[
-{id:"t002-1",t:"t002",pg:"pág. 5",q:"¿Qué se pregunta en la anamnesis (S) del control de un menor de 1 año?",a:["Genograma, contexto psicosocial, vivienda y calefacción, crisis vitales","Antecedentes perinatales; vacunas y pesquisa (en la libreta); pautas madurativas","Alimentación: lactancia, fórmula o LEV (cómo la prepara); madre: mastitis, grietas, puerperio","Pañales y catarsis; cordón; sueño (con quién, si alguien fuma o toma BZD); pantallas; anticoncepción; miedos"]},
-{id:"t002-2",t:"t002",pg:"pág. 5",q:"¿Qué pesquisas se revisan en la libreta y cuándo deben hacerse?",a:["En la libreta: OEA y prueba del talón","Metabólica: 1ª semana de vida","Auditiva: 1er mes y antes de los 3 meses (repetir si es anormal)"]},
-{id:"t002-3",t:"t002",pg:"págs. 5–6",q:"Antropometría del menor de 1 año: ¿qué valores hay que saber?",a:["Peso, talla y PC percentilados","Descenso máximo del 10%, recuperado en menos de 10 días; luego +25–30 g/día","De 4 a 6 meses: 20–25 g/día; talla ≈ 1 cm/mes entre los 4 y los 9 meses","Fontanela anterior: cierra a los 9–18 meses; posterior: al mes"]},
-{id:"t002-4",t:"t002",pg:"págs. 5–6",q:"¿Qué se busca en el examen físico (O) del menor de 1 año?",a:["Reflejo rojo: al nacer y a las 6 semanas (más fijación y seguimiento)","R1-R2 en 4 focos + pulsos femorales y braquiales; cordón","Genitales: testículos en bolsa y fimosis / sinequias","Caderas: Ortolani y Barlow en cada control del 1er año; ecografía solo con FR o hallazgos","Neurodesarrollo: reflejos arcaicos y pautas según la edad"]},
-{id:"t002-5",t:"t002",pg:"págs. 7–9",q:"¿Qué se indica en el plan (P) del control del menor de 1 año?",a:["LME a libre demanda, sin pasar 4 h entre mamadas; sueño seguro boca arriba en su cuna","Hierro: 1 mg/kg/día de 4 a 12 meses; con FR, 2 mg/kg/día de 2 a 12 meses","Vitaminas ACD al duplicar el peso o después de los 4 meses; vacunas pendientes","Fiebre en menores de 3 meses = signo de gravedad; prevención de accidentes; desaconsejar tabaquismo pasivo","Desarrollo: 1 área levemente afectada → estimulación; 2 o más → derivación"]}
-];
-const allCards=()=>BASE_CARDS.concat((S.custom||[]).map(c=>Object.assign({mine:true,pg:BY[c.t]?pgTxt(BY[c.t]):""},c)));
-
 // ---------- estado ----------
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -360,7 +285,7 @@ async function flush(){
       if(snap.exists){if(!dirty&&!saving){S=norm(snap.data());try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){};render()}}
       else if(first){
         // primera vez en esta cuenta: traer lo que haya en el navegador (o el progreso viejo del dueño)
-        let had=Object.keys(S.temas).length||Object.keys(S.cards).length||S.custom.length;
+        let had=Object.keys(S.temas).length;
         if(!had){try{if(await Promise.resolve(user.isOwner())){const o=await db.doc("estudio/progreso").get();if(o.exists){S=norm(o.data());had=true;render()}}}catch(e){}}
         ref=mine;if(had){dirty=true;flush()}
       }
@@ -446,8 +371,7 @@ function render(){
     const ul2=d.querySelector("ul");
     ch.ids.forEach(id=>{const x=BY[id];const s=S.temas[id]||{};
       const li=document.createElement("li");li.className="t"+(s.d?" done":"");
-      const nc=allCards().filter(c=>c.t===id).length;
-      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${nc?`<button class="fc-btn" data-deck="${id}">Tarjetas (${nc})</button>`:""}</div>`;
+      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}</div>`;
       ul2.appendChild(li)});
     ix.appendChild(d)});
 
@@ -464,70 +388,6 @@ function render(){
   $("cExam").value=EXAM;$("cIni").value=S.config.inicio;$("cFin").value=S.config.fin;$("cRest").value=S.config.descanso;$("cOrd").value=S.config.orden||"mix";
   $("pomos").textContent=`${(S.pomos||{})[t]||0} bloques hoy`;
   $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
-  renderFc();
-}
-
-// ---------- flashcards ----------
-let fcDeck="all",fcOnly=false,fcShuf=false,fcIdx=0,fcShown=false,fcList=[],fcSeed=Math.random();
-function fcRebuild(){
-  let l=allCards().filter(c=>fcDeck==="all"||c.t===fcDeck);
-  if(fcOnly)l=l.filter(c=>((S.cards[c.id]||{}).r)!=="ok");
-  if(fcShuf){const h=s=>{let x=0;for(const ch of s+fcSeed)x=(x*31+ch.charCodeAt(0))|0;return x};l=l.slice().sort((a,b)=>h(a.id)-h(b.id))}
-  fcList=l;if(fcIdx>=l.length)fcIdx=Math.max(0,l.length-1);
-}
-function renderFc(){
-  const cards=allCards();const decks=[...new Set(cards.map(c=>c.t))];
-  const sel=$("fcDeck");const want=["all",...decks].join("|");
-  if(sel.dataset.k!==want){sel.innerHTML=`<option value="all">Todas (${cards.length})</option>`+decks.map(d=>`<option value="${d}">${BY[d].n} (${cards.filter(c=>c.t===d).length})</option>`).join("");sel.dataset.k=want}
-  if(fcDeck!=="all"&&!decks.includes(fcDeck))fcDeck="all";sel.value=fcDeck;
-  $("fcOnly").setAttribute("aria-pressed",fcOnly);$("fcShuffle").setAttribute("aria-pressed",fcShuf);
-  fcRebuild();
-  const pool=cards.filter(c=>fcDeck==="all"||c.t===fcDeck);
-  const cnt={ok:0,dudo:0,no:0};pool.forEach(c=>{const r=(S.cards[c.id]||{}).r;if(r)cnt[r]++});
-  const n=pool.length||1;
-  $("fcOk").style.width=cnt.ok/n*100+"%";$("fcDudo").style.width=cnt.dudo/n*100+"%";$("fcNo").style.width=cnt.no/n*100+"%";
-  $("fcLegend").innerHTML=`<span>La sé <b>${cnt.ok}</b></span><span>Dudé <b>${cnt.dudo}</b></span><span>No la sé <b>${cnt.no}</b></span><span>Sin responder <b>${pool.length-cnt.ok-cnt.dudo-cnt.no}</b></span>`;
-  $("fcCount").textContent=`${cards.length} tarjetas`;
-  const c=fcList[fcIdx];
-  if(!c){$("fcMeta").textContent="";$("fcPos").textContent="";$("fcQ").textContent=fcOnly?"Ya marcaste todas como sabidas en este mazo.":"No hay tarjetas en este mazo.";$("fcA").hidden=true;$("fcShow").hidden=true;$("fcRate").hidden=true;$("fcDel").hidden=true;return}
-  const x=BY[c.t];
-  $("fcMeta").innerHTML="";const dot=document.createElement("span");dot.className="dot";dot.style.setProperty("--c",CHAPS[x.ci].col);dot.style.marginRight="6px";
-  $("fcMeta").append(dot,document.createTextNode(`${x.n} · ${c.pg||pgTxt(x)}`));
-  if(c.mine){const m=document.createElement("span");m.className="mine";m.textContent=" · mía";$("fcMeta").append(m)}
-  $("fcPos").textContent=`${fcIdx+1}/${fcList.length}`;
-  $("fcQ").textContent=c.q;
-  const ul=document.createElement("ul");(c.a||[]).forEach(t=>{const li=document.createElement("li");li.textContent=t;ul.appendChild(li)});
-  $("fcA").innerHTML="";$("fcA").appendChild(ul);
-  $("fcA").hidden=!fcShown;$("fcShow").hidden=fcShown;$("fcRate").hidden=!fcShown;
-  const r=(S.cards[c.id]||{}).r;$("fcRate").querySelectorAll("[data-r]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.r===r));
-  $("fcDel").hidden=!c.mine;
-  $("fcPrev").disabled=fcIdx===0;$("fcNext").disabled=fcIdx>=fcList.length-1;
-}
-$("fcDeck").onchange=e=>{fcDeck=e.target.value;fcIdx=0;fcShown=false;renderFc()};
-$("fcOnly").onclick=()=>{fcOnly=!fcOnly;fcIdx=0;fcShown=false;renderFc()};
-$("fcShuffle").onclick=()=>{fcShuf=!fcShuf;fcSeed=Math.random();fcIdx=0;fcShown=false;renderFc()};
-$("fcShow").onclick=()=>{fcShown=true;renderFc();$("fcRate").querySelector('[data-r="ok"]').focus()};
-$("fcPrev").onclick=()=>{if(fcIdx>0){fcIdx--;fcShown=false;renderFc()}};
-$("fcNext").onclick=()=>{if(fcIdx<fcList.length-1){fcIdx++;fcShown=false;renderFc()}};
-$("fcRate").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;const c=fcList[fcIdx];if(!c)return;
-  S.cards[c.id]={r:b.dataset.r,d:today()};persist();
-  const wasLast=fcIdx>=fcList.length-1;fcRebuild();
-  if(fcOnly&&b.dataset.r==="ok"){/* sale de la lista; el índice ya apunta a la siguiente */}
-  else if(!wasLast)fcIdx++;
-  fcShown=false;render();});
-$("fcDel").onclick=()=>{const c=fcList[fcIdx];if(!c||!c.mine)return;S.custom=S.custom.filter(x=>x.id!==c.id);delete S.cards[c.id];fcShown=false;persist();render()};
-$("nTopic").innerHTML=CHAPS.map(ch=>`<optgroup label="${ch.name}">`+ch.ids.map(id=>`<option value="${id}">${BY[id].n} (${pgTxt(BY[id])})</option>`).join("")+"</optgroup>").join("");
-$("addForm").addEventListener("submit",e=>{e.preventDefault();
-  const q=$("nQ").value.trim(),a=$("nA").value.split("\n").map(s=>s.trim()).filter(Boolean),t=$("nTopic").value;
-  if(!q||!a.length){$("addMsg").textContent="Completá la pregunta y al menos un renglón de respuesta.";return}
-  S.custom=S.custom||[];S.custom.push({id:"c"+Date.now().toString(36),t,q,a});persist();
-  $("nQ").value="";$("nA").value="";$("addMsg").textContent="Tarjeta agregada.";fcDeck=t;fcIdx=allCards().filter(c=>c.t===t).length-1;fcShown=false;render();
-  setTimeout(()=>$("addMsg").textContent="",2500)});
-function todoItem(x,t){
-  const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;
-  li.className=(s.d?"done ":"")+(current===x.id?"on":"");
-  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}`;
-  return li;
 }
 
 // ---------- temporizador ----------
@@ -562,7 +422,6 @@ document.addEventListener("click",e=>{
   const chb=e.target.closest("[data-chap]");if(chb){const ids=CHAPS[+chb.dataset.chap].ids;const un=chb.dataset.all==="true";const t=today();
     ids.forEach(id=>{const s=S.temas[id]||{};if(un){S.temas[id]=Object.assign({},s,{d:null,pre:false})}else if(!s.d){S.temas[id]=Object.assign({},s,{d:t,pre:!todayIds().has(id)})}});
     persist();render();return}
-  const dk=e.target.closest("[data-deck]");if(dk){fcDeck=dk.dataset.deck;fcIdx=0;fcShown=false;renderFc();$("fcSec").scrollIntoView({behavior:"smooth",block:"start"});return}
   const cf=e.target.closest(".cf");if(cf){const id=cf.dataset.id,v=cf.dataset.v;const cur=(S.temas[id]||{}).c;setTopic(id,"c",cur===v?"":v)}
 });
 document.addEventListener("change",e=>{
