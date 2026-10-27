@@ -136,7 +136,10 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <div class="eyebrow" id="eyebrow">Medicina Familiar · Cuadernillo 2026</div>
       <h1>Cuadernillo, tema por tema</h1>
     </div>
-    <div class="save" id="save" aria-live="polite">Cargando…</div>
+    <div class="row" style="align-items:center;justify-content:flex-end">
+      <div class="save" id="save" aria-live="polite">Cargando…</div>
+      <button class="btn" id="themeBtn" aria-label="Cambiar entre modo diurno y nocturno">Modo nocturno</button>
+    </div>
   </header>
 
   <div class="strip">
@@ -573,6 +576,13 @@ document.addEventListener("change",e=>{
   if(cb.id==="cOrd"){S.config.orden=cb.value;current=null;persist();render()}
 });
 let nt=null;$("notes").addEventListener("input",e=>{S.notas=e.target.value;clearTimeout(nt);nt=setTimeout(persist,900)});
+// ---------- modo diurno / nocturno ----------
+const TK=LS+"-theme";
+const isDark=()=>{const a=document.documentElement.getAttribute("data-theme");return a?a==="dark":matchMedia("(prefers-color-scheme: dark)").matches};
+function applyTheme(th){if(th)document.documentElement.setAttribute("data-theme",th);$("themeBtn").textContent=isDark()?"Modo diurno":"Modo nocturno"}
+try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
+$("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return new Set([...document.querySelectorAll("#todo li[data-id]")].map(l=>l.dataset.id))}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 $("rnd").onclick=()=>{
