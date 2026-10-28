@@ -157,6 +157,11 @@ textarea{width:100%;min-height:110px;font:inherit;background:var(--surface);colo
 .settings input,.settings select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
 details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 .empty{color:var(--muted);font-style:italic;margin:0}
+.listbox{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+.listbox>label,.minebox label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+.listbox select,.minebox input{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;max-width:100%}
+.minebox{display:flex;flex-direction:column;gap:10px}
+.minebox textarea{width:100%;min-height:220px;font:inherit;font-size:.95rem;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
 @media (max-width:680px){.strip{grid-template-columns:1fr 1fr}.strip .stat:last-child{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -164,7 +169,7 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 <div class="wrap">
   <header>
     <div>
-      <h1>Medicina Familiar</h1>
+      <h1 id="ttl">Medicina Familiar</h1>
     </div>
     <button class="btn" id="themeBtn" aria-label="Cambiar entre modo diurno y nocturno">Modo nocturno</button>
     <div class="save" id="save" hidden></div>
@@ -248,7 +253,7 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
   </div>
 
   <section class="sec" id="idxSec">
-    <div class="sechead"><h2>Índice de temas</h2><span class="hint">Páginas según la numeración [n] del cuadernillo</span></div>
+    <div class="sechead"><h2>Índice de temas</h2><span class="hint" id="idxHint">Páginas según la numeración [n] del cuadernillo</span></div>
     <div class="row" style="justify-content:flex-start;align-items:center">
       <button class="btn" id="markPrev">Ya leí algunos temas</button>
       <span class="hint" id="markPrevHint" hidden>Tildá lo que ya leíste, tema por tema o con «Marcar todo el capítulo». El plan se recalcula con lo que te falta.</span>
@@ -274,6 +279,18 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
         <select id="cOrd">
           <option value="mix">Intercalado por capítulos</option><option value="indice">Como en el índice</option>
         </select></label>
+    </div>
+    <div class="listbox">
+      <label for="cList">Lista de temas
+        <select id="cList"><option value="cuad">Cuadernillo de Medicina Familiar 2026</option><option value="mine">Mi propia lista</option></select></label>
+      <div id="mineBox" class="minebox" hidden>
+        <label for="mName">Nombre de la lista (aparece como título)
+          <input id="mName" maxlength="60" placeholder="Ej.: Clínica Médica"></label>
+        <label for="mText">Tus temas: uno por renglón. Para agrupar, escribí el capítulo con # adelante. Las páginas son opcionales, después de una barra |
+          <textarea id="mText" spellcheck="false" placeholder="# Cardiología&#10;Hipertensión arterial | 12-15&#10;Insuficiencia cardíaca | 16&#10;# Neumonología&#10;Asma&#10;EPOC"></textarea></label>
+        <div class="row" style="justify-content:flex-start;align-items:center"><button class="btn primary" id="mUse" type="button">Usar esta lista</button><span class="hint" id="mMsg" aria-live="polite"></span></div>
+      </div>
+      <p class="hint">Cada lista guarda su propio progreso y sus propias fechas. Podés volver al cuadernillo cuando quieras.</p>
     </div>
     <p class="hint" style="margin-top:10px">El plan reparte los temas que te faltan entre los días que quedan. Si un día no estudiás, no se acumula: se redistribuye solo.</p>
     <p class="hint" id="whereSaved"></p>
@@ -307,14 +324,36 @@ const RAW=[
 ];
 const LAST_PAGE=316;
 const CCOL=["#9F0927","#9F0927","#AD1457","#6A1B9A","#283593","#1565C0","#00838F","#2E7D32","#827717","#B8860B","#E65100","#BF360C","#6D4C41","#455A64","#C2185B","#00695C"];
-const TOPICS=[];const CHAPS=[];
-RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci});CHAPS[ci].ids.push(id)})});
-TOPICS.forEach((t,i)=>{const nx=i<TOPICS.length-1?TOPICS[i+1].p:LAST_PAGE+1;t.end=Math.max(t.p,nx-1);t.w=Math.max(.5,nx-t.p)});
-const BY=Object.fromEntries(TOPICS.map(t=>[t.id,t]));
-// Orden intercalado: un tema de cada capítulo por turno, respetando el orden interno de cada capítulo.
-const MIX=(()=>{const q=CHAPS.map(c=>c.ids.slice());const out=[];while(q.some(a=>a.length))q.forEach(a=>{if(a.length)out.push(BY[a.shift()])});return out})();
+// ---------- lista de temas: cuadernillo o lista propia ----------
+let TOPICS=[],CHAPS=[],BY={},MIX=[],HASPAGES=true,_builtKey=null;
+const slug=x=>x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"x";
+function finishBuild(){BY=Object.fromEntries(TOPICS.map(t=>[t.id,t]));
+  // orden intercalado: un tema de cada capítulo por turno, respetando el orden interno de cada capítulo
+  const q=CHAPS.map(c=>c.ids.slice());MIX=[];while(q.some(a=>a.length))q.forEach(a=>{if(a.length)MIX.push(BY[a.shift()])})}
+function buildCuad(){TOPICS=[];CHAPS=[];HASPAGES=true;
+  RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci});CHAPS[ci].ids.push(id)})});
+  TOPICS.forEach((t,i)=>{const nx=i<TOPICS.length-1?TOPICS[i+1].p:LAST_PAGE+1;t.end=Math.max(t.p,nx-1);t.w=Math.max(.5,nx-t.p)});finishBuild()}
+// formato: «# Capítulo» y un tema por renglón; páginas opcionales tras «|» (12 o 12-15)
+function parseList(text){const out=[];let cur=null;
+  (text||"").split(/\r?\n/).forEach(raw=>{let l=raw.trim();if(!l)return;
+    if(/^#+\s*/.test(l)){const name=l.replace(/^#+\s*/,"").trim();if(name){cur=[name,[]];out.push(cur)}return}
+    l=l.replace(/^([-•*·]|\d+[.)])\s+/,"");if(!l)return;
+    let n=l,p=null,e=null;const m=l.match(/^(.*?)\s*[|\t]\s*(?:p[áa]gs?\.?\s*)?(\d{1,4})(?:\s*[-–]\s*(\d{1,4}))?\s*$/i);
+    if(m&&m[1].trim()){n=m[1].trim();p=+m[2];e=m[3]?+m[3]:p;if(e<p)e=p}
+    if(!cur){cur=["Temas",[]];out.push(cur)}cur[1].push([n.slice(0,140),p,e])});
+  return out.filter(c=>c[1].length)}
+function buildMine(chs){TOPICS=[];CHAPS=[];const seen=new Set();const pal=CCOL.slice(1);
+  chs.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:pal[ci%pal.length]});
+    list.forEach(([n,p,e])=>{let id="u:"+slug(ch)+"/"+slug(n),k=id,j=2;while(seen.has(k))k=id+"~"+j++;seen.add(k);
+      TOPICS.push({id:k,n,p,end:e,ci});CHAPS[ci].ids.push(k)})});
+  HASPAGES=TOPICS.length>0&&TOPICS.every(t=>t.p);TOPICS.forEach(t=>t.w=HASPAGES?(t.end-t.p+1):1);finishBuild()}
+function ensureTopics(){const mine=S.mode==="mine"&&S.mine&&S.mine.text;const key=mine?"mine|"+S.mine.text:"cuad";
+  if(key===_builtKey)return;_builtKey=key;
+  if(mine){const chs=parseList(S.mine.text);if(chs.length){buildMine(chs);return}}
+  buildCuad()}
+const UNIT=n=>HASPAGES?(n===1?"pág.":"págs."):(n===1?"tema":"temas");
 const ORDER=()=>S.config.orden==="indice"?TOPICS:MIX;
-const pgTxt=t=>t.end>t.p?`págs. ${t.p}–${t.end}`:`pág. ${t.p}`;
+const pgTxt=t=>!t.p?"":t.end>t.p?`págs. ${t.p}–${t.end}`:`pág. ${t.p}`;
 
 // ---------- estado ----------
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -395,7 +434,12 @@ function confButtons(id){
   return [["ok","Lo sé"],["flojo","Flojo"],["rep","Repasar"]].map(([v,l])=>`<button class="cf" data-id="${id}" data-v="${v}" aria-pressed="${c===v}">${l}</button>`).join("");
 }
 function render(){
+  ensureTopics();if(current&&!BY[current])current=null;
   const t=today();
+  const mine=S.mode==="mine"&&S.mine&&S.mine.text&&TOPICS[0]&&TOPICS[0].id.startsWith("u:");
+  $("ttl").textContent=mine?(S.mine.name||"Mi lista de temas"):"Medicina Familiar";document.title=mine?(S.mine.name||"Mi lista de temas"):"Cuadernillo Medicina Familiar";
+  $("idxHint").textContent=mine?(HASPAGES?"Páginas según tu lista":"Tu lista de temas"):"Páginas según la numeración [n] del cuadernillo";
+  $("cList").value=mine?"mine":"cuad";if(mine){if(document.activeElement!==$("mText"))$("mText").value=S.mine.text;if(document.activeElement!==$("mName"))$("mName").value=S.mine.name||""}$("mineBox").hidden=$("cList").value!=="mine"&&!$("mineBox").dataset.force;
   const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
   const EXAM=S.config.examen||EXAM_DEFAULT;
   $("sExam").textContent=Math.max(0,diff(t,EXAM));
@@ -426,10 +470,10 @@ function render(){
   }else{
     const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
     $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.random?" · al azar":"");
-    $("hoyPages").textContent=`≈ ${pages} págs.`;
+    $("hoyPages").textContent=`≈ ${pages} ${UNIT(pages)}`;
     $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. Al marcarlo como leído, sale de la lista.";
     fillToday(ul,p.items,t);
-    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ≈ ${Math.round(p.per)} págs. por día`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
+    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
   if(current&&(S.temas[current]||{}).d)current=null;
   if(!current&&ul.querySelector("li[data-id]:not(.done)"))selectTopic(ul.querySelector("li[data-id]:not(.done)").dataset.id,false);
@@ -555,6 +599,22 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
+// ---------- cambiar de lista ----------
+function switchMode(m){const old=S.mode||"cuad";if(old===m)return;
+  S.configs=S.configs||{};S.configs[old]=JSON.parse(JSON.stringify(S.config));
+  S.mode=m;S.config=S.configs[m]?JSON.parse(JSON.stringify(S.configs[m])):JSON.parse(JSON.stringify(S.config));
+  current=null;PREV=null;S.hoy=null;S.extra=null}
+$("cList").addEventListener("change",e=>{const v=e.target.value;
+  if(v==="cuad"){delete $("mineBox").dataset.force;switchMode("cuad");persist();render();return}
+  $("mineBox").dataset.force="1";$("mineBox").hidden=false;
+  $("mName").value=(S.mine&&S.mine.name)||"";$("mText").value=(S.mine&&S.mine.text)||"";
+  if(S.mine&&S.mine.text){switchMode("mine");persist();render()}else{$("mText").focus()}});
+$("mUse").onclick=()=>{const text=$("mText").value;const chs=parseList(text);
+  if(!chs.length){$("mMsg").textContent="Pegá al menos un tema (uno por renglón).";return}
+  const n=chs.reduce((a,c)=>a+c[1].length,0);
+  S.mine={name:$("mName").value.trim(),text};switchMode("mine");_builtKey=null;persist();render();
+  $("mMsg").textContent=`Lista cargada: ${n} temas en ${chs.length} ${chs.length===1?"capítulo":"capítulos"}.`;
+  window.scrollTo({top:0,behavior:REDUCED?"auto":"smooth"})};
 // ---------- Música: Spotify o Apple Music ----------
 const SPK=LS+"-spotify";
 function spParse(u){u=(u||"").trim();
