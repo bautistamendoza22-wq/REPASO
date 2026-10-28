@@ -9,14 +9,14 @@
 <title>Cuadernillo Medicina Familiar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Shrikhand&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Shrikhand&family=Gloock&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: una columna calma; arriba "qué toca hoy" + temporizador, abajo el índice del impreso como checklist. */
 :root{
   --bg:#EFE3D8; --surface:#FBF4EE; --ink:#2E241E; --muted:#6B5A4E; --line:#DFCDBF;
   --accent:#B4471A; --accent-ink:#ffffff; --accent-soft:#F6E0D2;
   --ok:#1d7a3e; --ok-soft:#dfecd9; --warn:#8a5a00; --warn-soft:#f1e6cc; --bad:#b3261e; --bad-soft:#f1dcd3; --mixc:var(--ink); --mixp:0%;
-  --f-display:"Literata",Georgia,serif; --f-body:"Fredoka",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+  --f-display:"Gloock",Georgia,serif; --f-body:"Fredoka",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#17110D; --surface:#221A15; --ink:#F1E7DD; --muted:#B3A496; --line:#3A2E26;
@@ -31,8 +31,8 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
 .wrap{max-width:860px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
-h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
-h1{font-size:1.75rem;color:var(--accent)} h2{font-size:1.3rem} h3{font-size:1.05rem}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(2.4rem,8vw,3.3rem);line-height:1.02;font-weight:400;color:var(--accent)} h2{font-size:1.3rem} h3{font-size:1.05rem}
 .eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 button{font:inherit;cursor:pointer}
@@ -42,7 +42,7 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .save{font-size:.8rem;color:var(--muted)}
 .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 14px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
-.stat b{display:block;font-family:"Shrikhand",var(--f-display);font-size:clamp(2.2rem,7vw,3rem);font-weight:400;line-height:1.05;color:var(--accent)}
+.stat b{display:block;font-family:"Shrikhand",var(--f-display);font-size:clamp(1.9rem,6vw,2.5rem);font-weight:400;line-height:1.05;color:var(--accent)}
 .stat span{font-size:.95rem;color:var(--muted)}
 .stat .bar{width:100%}
 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
