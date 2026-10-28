@@ -84,6 +84,12 @@ header>div:first-child{min-width:0}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .todo li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;min-width:0}
+.todo .acts{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.todo .act{border:1px solid color-mix(in oklab,var(--cc,var(--accent)) 45%,var(--line));background:var(--surface);color:var(--cct,var(--ink));border-radius:99px;padding:4px 10px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.todo .act:hover{background:color-mix(in oklab,var(--cc,var(--accent)) 14%,var(--surface))}
+.todo .act.done-btn{background:color-mix(in oklab,var(--cc,var(--accent)) 16%,var(--surface))}
+.todo li.skiprow{justify-content:space-between}
+@media (max-width:600px){.todo li[data-id]{flex-wrap:wrap}.todo li[data-id] .nm{flex:1 1 calc(100% - 30px)}.todo .acts{width:100%;justify-content:flex-start;padding-left:20px}}
 .todo li.on{border-color:var(--accent);background:var(--accent-soft)}
 .todo li.done .nm{text-decoration:line-through;color:var(--muted)}
 .todo .nm{flex:1;min-width:0}
@@ -479,7 +485,7 @@ function render(){
     const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
     $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.random?" · al azar":"");
     $("hoyPages").textContent=`≈ ${pages} ${UNIT(pages)}`;
-    $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. Al marcarlo como leído, sale de la lista.";
+    $("hoyHint").textContent="«Leer» lo carga en el temporizador. «Ya lo leí» lo marca como leído y «Hoy no» lo pasa a otro día; en los dos casos sale de la lista.";
     fillToday(ul,p.items,t);
     if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ${p.per<0.95?`≈ 1 ${UNIT(1)} cada ${Math.round(1/p.per)} días`:`≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`}`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
@@ -536,11 +542,13 @@ function fillToday(ul,items,t){
   const planIds=new Set(items.map(x=>x.id));const seen=new Set();const all=[];
   items.concat(ex).forEach(x=>{if(!seen.has(x.id)){seen.add(x.id);all.push(x)}});
   TODAY=seen;
-  const pend=all.filter(x=>!(S.temas[x.id]||{}).d);const nDone=all.length-pend.length;
+  const sk=new Set((S.skip&&S.skip.fecha===t&&Array.isArray(S.skip.ids))?S.skip.ids:[]);
+  const pend=all.filter(x=>!(S.temas[x.id]||{}).d&&!sk.has(x.id));const nDone=all.filter(x=>(S.temas[x.id]||{}).d).length;const nSkip=all.filter(x=>sk.has(x.id)&&!(S.temas[x.id]||{}).d).length;
   pend.forEach(x=>{const li=todoItem(x,t,!planIds.has(x.id));if(PREV&&!PREV.has(x.id)&&!REDUCED)li.classList.add("enter");ul.appendChild(li)});
   PREV=new Set(pend.map(x=>x.id));
-  if(all.length&&!pend.length){const li=document.createElement("li");li.className="empty";li.textContent="Terminaste los temas de hoy. Podés agregar otro o descansar.";ul.appendChild(li)}
+  if(all.length&&!pend.length){const li=document.createElement("li");li.className="empty";li.textContent=nDone?"Terminaste los temas de hoy. Podés agregar otro o descansar.":"No quedan temas para hoy. Podés agregar otro o descansar.";ul.appendChild(li)}
   if(nDone){const li=document.createElement("li");li.className="empty"+(nDone>LASTDONE&&LASTDONE>=0&&!REDUCED?" counted":"");li.textContent=`✓ ${nDone} ${nDone===1?"tema leído":"temas leídos"} hoy`;ul.appendChild(li)}
+  if(nSkip){const li=document.createElement("li");li.className="empty skiprow";li.innerHTML=`<span>↷ ${nSkip} ${nSkip===1?"tema pospuesto":"temas pospuestos"} para otro día</span><button class="pick" data-unskip="1">Deshacer</button>`;ul.appendChild(li)}
   LASTDONE=nDone;
   return all;
 }
@@ -550,7 +558,7 @@ function addToday(id){const t=today();if(!BY[id])return;
 function todoItem(x,t,extra){
   const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;li.style.setProperty("--c",CHAPS[x.ci].col);
   li.className=(s.d?"done ":"")+(current===x.id?"on":"");
-  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}<small class="mono">${pgTxt(x)}</small></span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}${extra?`<button class="pick" data-unadd="${x.id}" aria-label="Quitar ${x.n} de hoy">Quitar</button>`:""}`;
+  li.innerHTML=`<span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}<small class="mono">${pgTxt(x)}</small></span><span class="acts"><button class="pick" data-pick="${x.id}">Leer</button><button class="act done-btn" data-done="${x.id}" aria-label="Ya leí ${x.n}">✓ Ya lo leí</button><button class="act" ${extra?`data-unadd="${x.id}"`:`data-skip="${x.id}"`} aria-label="Sacar ${x.n} de hoy">Hoy no</button></span>`;
   return li;
 }
 
@@ -607,6 +615,13 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
+const isSkipped=id=>{const t=today();return !!(S.skip&&S.skip.fecha===t&&Array.isArray(S.skip.ids)&&S.skip.ids.includes(id))};
+function skipToday(id){const t=today();if(!(S.skip&&S.skip.fecha===t&&Array.isArray(S.skip.ids)))S.skip={fecha:t,ids:[]};if(!S.skip.ids.includes(id))S.skip.ids.push(id);if(current===id)current=null;persist();render()}
+document.addEventListener("click",e=>{
+  const d=e.target.closest("[data-done]");if(d){const id=d.dataset.done;leave(d.closest("li"),()=>{S.temas[id]=Object.assign({},S.temas[id]||{},{d:today(),pre:false});if(current===id)current=null;persist();render()});return}
+  const k=e.target.closest("[data-skip]");if(k){const id=k.dataset.skip;leave(k.closest("li"),()=>skipToday(id));return}
+  const un=e.target.closest("[data-unskip]");if(un){S.skip=null;persist();render()}
+});
 // ---------- cambiar de lista ----------
 function switchMode(m){const old=S.mode||"cuad";if(old===m)return;
   S.configs=S.configs||{};S.configs[old]=JSON.parse(JSON.stringify(S.config));
@@ -655,7 +670,7 @@ $("spForm").addEventListener("submit",e=>{e.preventDefault();const v=spParse($("
   $("spMsg").textContent="";$("spUrl").value="";$("spForm").hidden=true;spRender()});
 spRender();
 $("addBtn").onclick=()=>{const id=$("addSel").value;if(id)addToday(id);else $("addSel").focus()};
-$("addRnd").onclick=()=>{const pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d&&!TODAY.has(x.id));
+$("addRnd").onclick=()=>{const pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d&&!TODAY.has(x.id)&&!isSkipped(x.id));
   if(!pool.length){$("hoyHint").textContent="No quedan temas sin leer para sumar.";return}
   addToday(pool[Math.floor(Math.random()*pool.length)].id)};
 document.addEventListener("click",e=>{
@@ -666,7 +681,7 @@ document.addEventListener("click",e=>{
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 $("rnd").onclick=()=>{
   const t=today(),p=planToday();
-  let pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d);
+  let pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d&&!isSkipped(x.id));
   if(!pool.length)pool=TOPICS.filter(x=>["flojo","rep"].includes((S.temas[x.id]||{}).c));
   if(!pool.length){$("hoyHint").textContent="Ya leíste todos los temas y no hay ninguno marcado para repasar.";return}
   const target=p.per||14;const pick=[];let acc=0;
