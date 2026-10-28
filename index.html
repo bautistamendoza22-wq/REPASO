@@ -9,7 +9,7 @@
 <title>Cuadernillo Medicina Familiar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Shrikhand&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: una columna calma; arriba "qué toca hoy" + temporizador, abajo el índice del impreso como checklist. */
 :root{
@@ -62,7 +62,7 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .late{font-size:.85rem;color:var(--warn);font-weight:700;margin:0}
 
 .timer{align-items:center;text-align:center}
-.clock{font-family:var(--f-mono);font-size:clamp(3rem,12vw,4.5rem);font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.clock{font-family:"Shrikhand",var(--f-display);font-size:clamp(3rem,12vw,4.5rem);font-weight:400;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1}
 .phase{font-weight:700;color:var(--accent)}
 .phase.rest{color:var(--warn)}
 .now{font-family:var(--f-display);font-size:1.15rem}
@@ -135,8 +135,8 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow" id="eyebrow">Medicina Familiar · Cuadernillo 2026</div>
-      <h1>Cuadernillo, tema por tema</h1>
+      <div class="eyebrow" id="eyebrow">Cuadernillo 2026</div>
+      <h1>Medicina Familiar</h1>
     </div>
     <div class="row" style="align-items:center;justify-content:flex-end">
       <div class="save" id="save" aria-live="polite">Cargando…</div>
@@ -360,7 +360,7 @@ function render(){
   const t=today();
   const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
   const EXAM=S.config.examen||EXAM_DEFAULT;
-  $("eyebrow").textContent="Medicina Familiar · examen "+parse(EXAM).toLocaleDateString("es-AR",{day:"numeric",month:"long"});
+  $("eyebrow").textContent="Cuadernillo 2026 · examen "+parse(EXAM).toLocaleDateString("es-AR",{day:"numeric",month:"long"});
   $("sExam").textContent=Math.max(0,diff(t,EXAM));
   const df=diff(t,S.config.fin);
   $("sFin").textContent=df>=0?df+1:"✓";
