@@ -54,6 +54,7 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .todo li.on{border-color:var(--accent);background:var(--accent-soft)}
 .todo li.done .nm{text-decoration:line-through;color:var(--muted)}
 .todo .nm{flex:1;min-width:0}
+.todo .nm small{display:block;font-size:.78rem;color:var(--muted)}
 .todo .pg{color:var(--muted);font-size:.85rem;white-space:nowrap}
 .pick{border:0;background:none;color:var(--accent);font-weight:700;padding:4px 6px;border-radius:6px}
 .pick:hover{background:var(--accent-soft)}
@@ -87,6 +88,10 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .t.done .nm{color:var(--muted)}
 .t .pg{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);white-space:nowrap}
 .conf{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px}
+.addrow{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.addrow select{flex:1;min-width:0;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+.cf.add{border-color:var(--accent);color:var(--accent);font-weight:700}
+.todo li.empty{border-style:dashed;color:var(--muted);font-style:normal;font-size:.9rem}
 .cf{border:1px solid var(--line);background:none;color:var(--muted);border-radius:99px;padding:2px 10px;font-size:.78rem}
 .cf[data-v="ok"][aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
 .cf[data-v="flojo"][aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
@@ -132,6 +137,13 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <div class="row" style="justify-content:flex-start">
         <button class="btn" id="rnd">Temas al azar para hoy</button>
         <button class="btn" id="rndBack" hidden>Volver al plan</button>
+      </div>
+      <div class="addrow">
+        <label for="addSel" class="hint">Agregar un tema a hoy</label>
+        <div class="row" style="justify-content:flex-start;flex-wrap:nowrap">
+          <select id="addSel"></select>
+          <button class="btn primary" id="addBtn">Agregar</button>
+        </div>
       </div>
     </div>
 
@@ -343,22 +355,27 @@ function render(){
     $("rnd").textContent=random?"Sortear otros temas":"Temas al azar para hoy";$("rndBack").hidden=!random;
     const list=random?S.hoy.ids.map(id=>BY[id]).filter(Boolean):left.concat(rep).slice(0,6);
     $("hoyHint").textContent=left.length?`Te quedan ${left.length} temas sin leer: arrancá por esos.`:"Repasá lo marcado como flojo o repasar. Pedime preguntas sobre esos temas.";
-    list.forEach(x=>ul.appendChild(todoItem(x,t)));
-    if(!list.length)ul.innerHTML='<li class="empty">Nada pendiente. Pedime un caso clínico simulado.</li>';
+    const all=fillToday(ul,list,t);
+    if(!all.length)ul.innerHTML='<li class="empty">Nada pendiente. Pedile a Claude un caso clínico simulado.</li>';
   }else if(p.phase==="descanso"){
     $("hoyTitle").textContent="Hoy descansás";$("hoyPages").textContent="";
-    $("hoyHint").textContent=`Lo próximo, ${fmtDay(p.day)}:`;
-    p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
+    $("hoyHint").textContent=`Lo próximo, ${fmtDay(p.day)}. Igual podés agregar un tema si querés estudiar.`;
+    fillToday(ul,p.items,t);
   }else{
     const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
     $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.random?" · al azar":"");
     $("hoyPages").textContent=`≈ ${pages} págs.`;
-    $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. El orden es libre.";
-    p.items.forEach(x=>ul.appendChild(todoItem(x,t)));
+    $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. Al marcarlo como leído, sale de la lista.";
+    fillToday(ul,p.items,t);
     if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ≈ ${Math.round(p.per)} págs. por día`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
+  if(current&&(S.temas[current]||{}).d)current=null;
   if(!current&&ul.querySelector("li[data-id]:not(.done)"))selectTopic(ul.querySelector("li[data-id]:not(.done)").dataset.id,false);
   else if(current)showCurrent();
+  // selector «agregar a hoy»: temas no leídos que no están en la lista
+  const prevSel=$("addSel").value;
+  $("addSel").innerHTML='<option value="">Elegí un tema…</option>'+CHAPS.map(ch=>{const ops=ch.ids.filter(id=>!(S.temas[id]||{}).d&&!TODAY.has(id));return ops.length?`<optgroup label="${ch.name}">`+ops.map(id=>`<option value="${id}">${BY[id].n} (${pgTxt(BY[id])})</option>`).join("")+"</optgroup>":""}).join("");
+  if([...$("addSel").options].some(o=>o.value===prevSel))$("addSel").value=prevSel;
 
   // índice
   const ix=$("index");const open=new Set([...ix.querySelectorAll("details[open]")].map(d=>d.dataset.ci));
@@ -371,7 +388,7 @@ function render(){
     const ul2=d.querySelector("ul");
     ch.ids.forEach(id=>{const x=BY[id];const s=S.temas[id]||{};
       const li=document.createElement("li");li.className="t"+(s.d?" done":"");
-      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}</div>`;
+      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${!s.d&&!TODAY.has(id)?`<button class="cf add" data-add="${id}">+ Hoy</button>`:""}</div>`;
       ul2.appendChild(li)});
     ix.appendChild(d)});
 
@@ -390,10 +407,26 @@ function render(){
   $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
 }
 
-function todoItem(x,t){
+let TODAY=new Set();
+// pinta la lista de hoy: plan + temas agregados; los leídos salen de la lista y quedan contados abajo
+function fillToday(ul,items,t){
+  const ex=(S.extra&&S.extra.fecha===t&&Array.isArray(S.extra.ids))?S.extra.ids.map(id=>BY[id]).filter(Boolean):[];
+  const planIds=new Set(items.map(x=>x.id));const seen=new Set();const all=[];
+  items.concat(ex).forEach(x=>{if(!seen.has(x.id)){seen.add(x.id);all.push(x)}});
+  TODAY=seen;
+  const pend=all.filter(x=>!(S.temas[x.id]||{}).d);const nDone=all.length-pend.length;
+  pend.forEach(x=>ul.appendChild(todoItem(x,t,!planIds.has(x.id))));
+  if(all.length&&!pend.length){const li=document.createElement("li");li.className="empty";li.textContent="Terminaste los temas de hoy. Podés agregar otro o descansar.";ul.appendChild(li)}
+  if(nDone){const li=document.createElement("li");li.className="empty";li.textContent=`✓ ${nDone} ${nDone===1?"tema leído":"temas leídos"} hoy`;ul.appendChild(li)}
+  return all;
+}
+function addToday(id){const t=today();if(!BY[id])return;
+  if(!(S.extra&&S.extra.fecha===t&&Array.isArray(S.extra.ids)))S.extra={fecha:t,ids:[]};
+  if(!S.extra.ids.includes(id))S.extra.ids.push(id);persist();render()}
+function todoItem(x,t,extra){
   const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;
   li.className=(s.d?"done ":"")+(current===x.id?"on":"");
-  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}`;
+  li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}<small class="mono">${pgTxt(x)}</small></span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}${extra?`<button class="pick" data-unadd="${x.id}" aria-label="Quitar ${x.n} de hoy">Quitar</button>`:""}`;
   return li;
 }
 
@@ -449,7 +482,12 @@ function applyTheme(th){if(th)document.documentElement.setAttribute("data-theme"
 try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
-function todayIds(){return new Set([...document.querySelectorAll("#todo li[data-id]")].map(l=>l.dataset.id))}
+function todayIds(){return TODAY}
+$("addBtn").onclick=()=>{const id=$("addSel").value;if(id)addToday(id)};
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-add]");if(a){addToday(a.dataset.add);return}
+  const u=e.target.closest("[data-unadd]");if(u){const id=u.dataset.unadd;if(S.extra&&Array.isArray(S.extra.ids)){S.extra.ids=S.extra.ids.filter(x=>x!==id)}if(current===id)current=null;persist();render()}
+});
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 $("rnd").onclick=()=>{
   const t=today(),p=planToday();
