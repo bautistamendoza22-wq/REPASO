@@ -92,6 +92,23 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .addrow select{flex:1;min-width:0;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
 .cf.add{border-color:var(--accent);color:var(--accent);font-weight:700}
 .todo li.empty{border-style:dashed;color:var(--muted);font-style:normal;font-size:.9rem}
+/* animaciones */
+@keyframes inUp{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+.todo li.enter{animation:inUp .32s cubic-bezier(.2,.8,.3,1) both}
+.todo li.enter:nth-child(2){animation-delay:.04s}.todo li.enter:nth-child(3){animation-delay:.08s}.todo li.enter:nth-child(4){animation-delay:.12s}.todo li.enter:nth-child(5){animation-delay:.16s}.todo li.enter:nth-child(6){animation-delay:.2s}
+.todo li.counted{animation:pop .35s ease-out}
+.chap .opening{animation:inUp .25s ease-out}
+.cf,.chip,.btn,.pick{transition:background-color .15s,border-color .15s,color .15s,transform .1s}
+.btn:active,.chip:active,.cf:active,.pick:active{transform:scale(.96)}
+/* color de cada capítulo */
+.chap{--cc:color-mix(in oklab,var(--c) calc(100% - var(--mixp)),var(--mixc));--cct:color-mix(in oklab,var(--cc) 78%,var(--ink))}
+.chap .bar>i{background:var(--cc)}
+.chap .chip,.chap .cf{border-color:color-mix(in oklab,var(--cc) 45%,var(--line));color:var(--cct)}
+.chap .chip:hover,.chap .cf:hover{background:color-mix(in oklab,var(--cc) 12%,transparent)}
+.chap .cf.add{border-color:var(--cc);color:var(--cct)}
+.chap .t input{accent-color:var(--cc)}
+.chap>summary h3{color:var(--cct)}
 .cf{border:1px solid var(--line);background:none;color:var(--muted);border-radius:99px;padding:2px 10px;font-size:.78rem}
 .cf[data-v="ok"][aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
 .cf[data-v="flojo"][aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
@@ -143,6 +160,9 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
         <div class="row" style="justify-content:flex-start;flex-wrap:nowrap">
           <select id="addSel"></select>
           <button class="btn primary" id="addBtn">Agregar</button>
+        </div>
+        <div class="row" style="justify-content:flex-start">
+          <button class="btn" id="addRnd">Sumar un tema al azar</button>
         </div>
       </div>
     </div>
@@ -382,7 +402,7 @@ function render(){
   ix.innerHTML="";
   CHAPS.forEach((ch,ci)=>{
     const n=ch.ids.filter(id=>(S.temas[id]||{}).d).length;
-    const d=document.createElement("details");d.className="chap";d.dataset.ci=ci;if(open.has(String(ci)))d.open=true;
+    const d=document.createElement("details");d.className="chap";d.dataset.ci=ci;d.style.setProperty("--c",ch.col);if(open.has(String(ci)))d.open=true;
     const all=n===ch.ids.length;
     d.innerHTML=`<summary><h3><span class="dot" style="--c:${ch.col}"></span>${ch.name}</h3><span class="cnt">${n}/${ch.ids.length}</span><div class="bar"><i style="width:${n/ch.ids.length*100}%"></i></div></summary><div style="padding:0 14px 8px"><button class="chip" data-chap="${ci}" data-all="${all}">${all?"Desmarcar todo el capítulo":"Marcar todo el capítulo como leído"}</button></div><ul class="topics"></ul>`;
     const ul2=d.querySelector("ul");
@@ -390,6 +410,7 @@ function render(){
       const li=document.createElement("li");li.className="t"+(s.d?" done":"");
       li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${!s.d&&!TODAY.has(id)?`<button class="cf add" data-add="${id}">+ Hoy</button>`:""}</div>`;
       ul2.appendChild(li)});
+    if(!REDUCED)d.addEventListener("toggle",()=>{if(d.open){[...d.children].slice(1).forEach(el=>{el.classList.remove("opening");void el.offsetWidth;el.classList.add("opening")})}});
     ix.appendChild(d)});
 
   // repaso
@@ -407,7 +428,15 @@ function render(){
   $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
 }
 
-let TODAY=new Set();
+let TODAY=new Set(),PREV=null,LASTDONE=-1;
+const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches;
+// sale de la lista con un desvanecido y se cierra el hueco; después aplica el cambio
+function leave(li,done){
+  if(!li||REDUCED||!li.animate){done();return}
+  const h=li.offsetHeight;li.style.overflow="hidden";li.style.pointerEvents="none";
+  const a=li.animate([{opacity:1,transform:"none",height:h+"px"},{opacity:0,transform:"translateX(24px)",height:h+"px",offset:.55},{opacity:0,transform:"translateX(24px)",height:"0px",paddingTop:"0px",paddingBottom:"0px",marginTop:"-8px",borderWidth:"0px"}],{duration:380,easing:"ease-in-out",fill:"forwards"});
+  a.onfinish=done;
+}
 // pinta la lista de hoy: plan + temas agregados; los leídos salen de la lista y quedan contados abajo
 function fillToday(ul,items,t){
   const ex=(S.extra&&S.extra.fecha===t&&Array.isArray(S.extra.ids))?S.extra.ids.map(id=>BY[id]).filter(Boolean):[];
@@ -415,9 +444,11 @@ function fillToday(ul,items,t){
   items.concat(ex).forEach(x=>{if(!seen.has(x.id)){seen.add(x.id);all.push(x)}});
   TODAY=seen;
   const pend=all.filter(x=>!(S.temas[x.id]||{}).d);const nDone=all.length-pend.length;
-  pend.forEach(x=>ul.appendChild(todoItem(x,t,!planIds.has(x.id))));
+  pend.forEach(x=>{const li=todoItem(x,t,!planIds.has(x.id));if(PREV&&!PREV.has(x.id)&&!REDUCED)li.classList.add("enter");ul.appendChild(li)});
+  PREV=new Set(pend.map(x=>x.id));
   if(all.length&&!pend.length){const li=document.createElement("li");li.className="empty";li.textContent="Terminaste los temas de hoy. Podés agregar otro o descansar.";ul.appendChild(li)}
-  if(nDone){const li=document.createElement("li");li.className="empty";li.textContent=`✓ ${nDone} ${nDone===1?"tema leído":"temas leídos"} hoy`;ul.appendChild(li)}
+  if(nDone){const li=document.createElement("li");li.className="empty"+(nDone>LASTDONE&&LASTDONE>=0&&!REDUCED?" counted":"");li.textContent=`✓ ${nDone} ${nDone===1?"tema leído":"temas leídos"} hoy`;ul.appendChild(li)}
+  LASTDONE=nDone;
   return all;
 }
 function addToday(id){const t=today();if(!BY[id])return;
@@ -467,7 +498,8 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{
   const cb=e.target;if(cb.matches('input[type="checkbox"][data-id]')){const id=cb.dataset.id;
     // fuera del plan de hoy = «ya lo leí antes»: no suma a la lista del día
-    S.temas[id]=Object.assign({},S.temas[id]||{},cb.checked?{d:today(),pre:!todayIds().has(id)}:{d:null,pre:false});persist();render()}
+    const apply=()=>{S.temas[id]=Object.assign({},S.temas[id]||{},cb.checked?{d:today(),pre:!todayIds().has(id)}:{d:null,pre:false});persist();render()};
+    const li=cb.closest("#todo li");if(li&&cb.checked)leave(li,apply);else apply()}
   if(cb.id==="cExam"&&cb.value){const old=S.config.examen;S.config.examen=cb.value;if(S.config.fin===addDays(old||EXAM_DEFAULT,-14))S.config.fin=addDays(cb.value,-14);persist();render()}
   if(cb.id==="cIni"&&cb.value){S.config.inicio=cb.value;persist();render()}
   if(cb.id==="cFin"&&cb.value){S.config.fin=cb.value;persist();render()}
@@ -483,10 +515,14 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
-$("addBtn").onclick=()=>{const id=$("addSel").value;if(id)addToday(id)};
+$("addBtn").onclick=()=>{const id=$("addSel").value;if(id)addToday(id);else $("addSel").focus()};
+$("addRnd").onclick=()=>{const pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d&&!TODAY.has(x.id));
+  if(!pool.length){$("hoyHint").textContent="No quedan temas sin leer para sumar.";return}
+  addToday(pool[Math.floor(Math.random()*pool.length)].id)};
 document.addEventListener("click",e=>{
   const a=e.target.closest("[data-add]");if(a){addToday(a.dataset.add);return}
-  const u=e.target.closest("[data-unadd]");if(u){const id=u.dataset.unadd;if(S.extra&&Array.isArray(S.extra.ids)){S.extra.ids=S.extra.ids.filter(x=>x!==id)}if(current===id)current=null;persist();render()}
+  const u=e.target.closest("[data-unadd]");if(u){const id=u.dataset.unadd;
+    leave(u.closest("li"),()=>{if(S.extra&&Array.isArray(S.extra.ids)){S.extra.ids=S.extra.ids.filter(x=>x!==id)}if(current===id)current=null;persist();render()})}
 });
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 $("rnd").onclick=()=>{
