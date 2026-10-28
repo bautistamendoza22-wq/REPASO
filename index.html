@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script src="firebase-config.js"></script>
 </head>
 <body>
 <title>Cuadernillo Medicina Familiar</title>
@@ -50,6 +51,10 @@ header{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:f
 header>div:first-child{min-width:0}
 #themeBtn{flex:none;white-space:nowrap}
 .hbtns{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;flex:none;max-width:60%}
+.userchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 6px 4px 4px;font-weight:600;font-size:.9rem}
+.userchip img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--accent-soft)}
+.userchip img:not([src]),.userchip img[src=""]{display:none}
+.authmsg{font-size:.85rem;color:var(--bad)}
 .hbtns .btn{white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 @media (max-width:600px){
   header{flex-wrap:wrap}
@@ -57,6 +62,7 @@ header>div:first-child{min-width:0}
   header>div:first-child{flex:1;order:1}
   #themeBtn{order:2}
   #casosBtn{order:3;width:100%;justify-content:center}
+  #loginBtn,#userChip{order:4;width:100%;justify-content:center}
 }
 .save{font-size:.8rem;color:var(--muted)}
 .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -187,6 +193,8 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <h1 id="ttl">Medicina Familiar</h1>
     </div>
     <div class="hbtns">
+      <button class="btn" id="loginBtn" hidden>Iniciar sesión con Google</button>
+      <span class="userchip" id="userChip" hidden><img id="userPic" alt="" referrerpolicy="no-referrer"><span id="userName"></span><button class="pick" id="logoutBtn">Salir</button></span>
       <a class="btn primary" id="casosBtn" href="https://bautistamendoza22-wq.github.io/casos-medicina-familiar/" target="_blank" rel="noopener">Practicar casos clínicos <span aria-hidden="true">↗</span></a>
       <button class="btn" id="themeBtn" aria-label="Cambiar entre modo diurno y nocturno">Modo nocturno</button>
     </div>
@@ -389,7 +397,9 @@ let db=null,ref=null,saving=false,dirty=false,saveTimer=null;
 const $=id=>document.getElementById(id);
 function setSave(t){$("save").textContent=t}
 function persist(){
+  S.updatedAt=Date.now();
   try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+  if(typeof fbQueue==="function")fbQueue();
   if(!ref){setSave(LOCAL);return}
   dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(flush,700);setSave("Guardando…");
 }
@@ -524,7 +534,7 @@ function render(){
 
   $("cExam").value=EXAM;$("cIni").value=S.config.inicio;$("cFin").value=S.config.fin;$("cRest").value=S.config.descanso;$("cOrd").value=S.config.orden||"mix";
   $("pomos").textContent=`${(S.pomos||{})[t]||0} bloques hoy`;
-  $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
+  $("whereSaved").textContent=fbUser?`Tu progreso se guarda en tu cuenta de Google (${fbUser.email||fbUser.displayName||""}) y se sincroniza entre tus dispositivos.`:ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
 }
 
 let TODAY=new Set(),PREV=null,LASTDONE=-1;
@@ -615,6 +625,32 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
+// ---------- Firebase: login con Google y progreso en la nube (solo en el sitio publicado) ----------
+let fb=null,fbUser=null,fbDoc=null,fbUnsub=null,fbTimer=null;
+function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el)})}
+function authMsg(t){$("whereSaved").textContent=t}
+function renderAuth(){if(!fb)return;$("loginBtn").hidden=!!fbUser;$("userChip").hidden=!fbUser;
+  if(fbUser){$("userName").textContent=(fbUser.displayName||fbUser.email||"").split(" ")[0];if(fbUser.photoURL)$("userPic").src=fbUser.photoURL;else $("userPic").removeAttribute("src")}}
+function applyRemote(r){S=norm(r);_builtKey=null;current=null;PREV=null;try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}render()}
+async function fbPush(){if(!fbDoc)return;try{await fbDoc.set({state:JSON.parse(JSON.stringify(S)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()})}catch(e){authMsg("No se pudo guardar en tu cuenta. Tu progreso quedó en este navegador.")}}
+function fbQueue(){if(!fbDoc)return;clearTimeout(fbTimer);fbTimer=setTimeout(fbPush,800)}
+async function fbInit(){const cfg=window.FIREBASE_CONFIG;if(!cfg||!cfg.apiKey)return;
+  const B="https://www.gstatic.com/firebasejs/10.12.2/";
+  try{await loadScript(B+"firebase-app-compat.js");await loadScript(B+"firebase-auth-compat.js");await loadScript(B+"firebase-firestore-compat.js")}catch(e){return}
+  firebase.initializeApp(cfg);fb={auth:firebase.auth(),db:firebase.firestore()};
+  $("loginBtn").hidden=false;fb.auth.getRedirectResult().catch(()=>{});
+  fb.auth.onAuthStateChanged(async u=>{fbUser=u;if(fbUnsub){fbUnsub();fbUnsub=null}fbDoc=null;renderAuth();render();if(!u)return;
+    const doc=fb.db.collection("users").doc(u.uid);
+    try{const snap=await doc.get();const remote=snap.exists?snap.data().state:null;fbDoc=doc;
+      // gana la versión más reciente: la de la nube o la de este navegador
+      if(remote&&(remote.updatedAt||0)>(S.updatedAt||0))applyRemote(remote);else await fbPush()}
+    catch(e){authMsg("No se pudo leer tu progreso de la cuenta. Seguís trabajando en este navegador.");return}
+    fbUnsub=doc.onSnapshot(sn=>{if(sn.metadata.hasPendingWrites||!sn.exists)return;const r=sn.data().state;if(r&&(r.updatedAt||0)>(S.updatedAt||0))applyRemote(r)});
+    render()})}
+$("loginBtn").onclick=()=>{if(!fb)return;const pr=new firebase.auth.GoogleAuthProvider();pr.setCustomParameters({prompt:"select_account"});
+  fb.auth.signInWithPopup(pr).catch(e=>{if(/popup-blocked|operation-not-supported|popup-closed-by-browser/.test(e.code||""))fb.auth.signInWithRedirect(pr);else if(!/popup-closed-by-user|cancelled-popup/.test(e.code||""))authMsg("No se pudo iniciar sesión: "+(e.message||e.code))})};
+$("logoutBtn").onclick=()=>{if(fb)fb.auth.signOut()};
+if(/github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname))fbInit();
 const isSkipped=id=>{const t=today();return !!(S.skip&&S.skip.fecha===t&&Array.isArray(S.skip.ids)&&S.skip.ids.includes(id))};
 function skipToday(id){const t=today();if(!(S.skip&&S.skip.fecha===t&&Array.isArray(S.skip.ids)))S.skip={fecha:t,ids:[]};if(!S.skip.ids.includes(id))S.skip.ids.push(id);if(current===id)current=null;persist();render()}
 document.addEventListener("click",e=>{

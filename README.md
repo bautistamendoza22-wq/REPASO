@@ -13,6 +13,6 @@ Plan de estudio del cuadernillo de Medicina Familiar 2026, tema por tema:
 - Opción de usar una lista de temas propia (un tema por renglón) en lugar del cuadernillo.
 - Reproductor de Spotify o Apple Music junto al temporizador (cada persona pega su playlist).
 
-El progreso se guarda en el navegador de cada persona.
+El progreso se guarda en el navegador de cada persona, o en su cuenta de Google si inicia sesión (requiere configurar Firebase en `firebase-config.js`).
 
 Sitio: https://bautistamendoza22-wq.github.io/REPASO/
