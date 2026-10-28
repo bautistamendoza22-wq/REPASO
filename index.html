@@ -13,17 +13,17 @@
 <style>
 /* Layout: una columna calma; arriba "qué toca hoy" + temporizador, abajo el índice del impreso como checklist. */
 :root{
-  --bg:#e8e3d7; --surface:#f5f1e6; --ink:#2a2620; --muted:#635d52; --line:#d5cdbb;
+  --bg:#EFE3D8; --surface:#FBF4EE; --ink:#2E241E; --muted:#6B5A4E; --line:#DFCDBF;
   --accent:#B4471A; --accent-ink:#ffffff; --accent-soft:#F6E0D2;
   --ok:#1d7a3e; --ok-soft:#dfecd9; --warn:#8a5a00; --warn-soft:#f1e6cc; --bad:#b3261e; --bad-soft:#f1dcd3; --mixc:var(--ink); --mixp:0%;
   --f-display:"Literata",Georgia,serif; --f-body:"Fredoka",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#000000; --surface:#121212; --ink:#ece8e1; --muted:#a29d94; --line:#2c2c2c;
+  --bg:#17110D; --surface:#221A15; --ink:#F1E7DD; --muted:#B3A496; --line:#3A2E26;
   --accent:#F2955F; --accent-ink:#000000; --accent-soft:#3A2014;
   --ok:#6fd38f; --ok-soft:#12301d; --warn:#e2b257; --warn-soft:#33280f; --bad:#f08a80; --bad-soft:#3a1715; --mixp:45%; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000; --surface:#121212; --ink:#ece8e1; --muted:#a29d94; --line:#2c2c2c;
+  --bg:#17110D; --surface:#221A15; --ink:#F1E7DD; --muted:#B3A496; --line:#3A2E26;
   --accent:#F2955F; --accent-ink:#000000; --accent-soft:#3A2014;
   --ok:#6fd38f; --ok-soft:#12301d; --warn:#e2b257; --warn-soft:#33280f; --bad:#f08a80; --bad-soft:#3a1715; --mixp:45%; color-scheme:dark}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:color-mix(in oklab,var(--c) calc(100% - var(--mixp)),var(--mixc));flex:none}
@@ -32,7 +32,7 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
 .wrap{max-width:860px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
-h1{font-size:1.75rem} h2{font-size:1.3rem} h3{font-size:1.05rem}
+h1{font-size:1.75rem;color:var(--accent)} h2{font-size:1.3rem} h3{font-size:1.05rem}
 .eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 button{font:inherit;cursor:pointer}
@@ -41,9 +41,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
 .save{font-size:.8rem;color:var(--muted)}
 .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
-.stat b{display:block;font-family:var(--f-mono);font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums}
-.stat span{font-size:.85rem;color:var(--muted)}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 14px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
+.stat b{display:block;font-family:"Shrikhand",var(--f-display);font-size:clamp(2.2rem,7vw,3rem);font-weight:400;line-height:1.05;color:var(--accent)}
+.stat span{font-size:.95rem;color:var(--muted)}
+.stat .bar{width:100%}
 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
 
