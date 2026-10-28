@@ -58,14 +58,18 @@ header>div:first-child{min-width:0}
 /* Layout: en pantallas anchas, columna principal (hoy, repaso, índice) + lateral (temporizador, música, anotador, plan) */
 .cols{display:flex;flex-direction:column;gap:28px}
 .main,.side{display:contents}
-.main>.panel{order:1}.side>.timer{order:2}#repSec{order:3}#idxSec{order:4}#notesSec{order:5}#planBox{order:6}
+.main>.panel{order:1}.side>.timer{order:2}#repSec{order:3}
 @media (min-width:960px){
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,400px);gap:28px;align-items:start}
   .main,.side{display:flex;flex-direction:column;gap:28px;min-width:0}
   .strip{gap:16px}
 }
-@media (min-width:1280px){
+@media (min-width:760px){
   #index{display:block;columns:2;column-gap:12px}
+  #index .chap{break-inside:avoid;margin-bottom:8px}
+}
+@media (min-width:1280px){
+  #index{display:block;columns:3;column-gap:12px}
   #index .chap{break-inside:avoid;margin-bottom:8px}
 }
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -200,14 +204,6 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
     <div id="repList"></div>
   </section>
 
-  <section class="sec" id="idxSec">
-    <div class="sechead"><h2>Índice del impreso</h2><span class="hint">Páginas según la numeración [n] del cuadernillo</span></div>
-    <div class="row" style="justify-content:flex-start;align-items:center">
-      <button class="btn" id="markPrev">Ya leí algunos temas</button>
-      <span class="hint" id="markPrevHint" hidden>Tildá lo que ya leíste, tema por tema o con «Marcar todo el capítulo». El plan se recalcula con lo que te falta.</span>
-    </div>
-    <div id="index" class="sec" style="gap:8px"></div>
-  </section>
   </div>
   <aside class="side">
     <div class="panel timer" aria-label="Temporizador">
@@ -247,10 +243,17 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       </div>
     </div>
 
-  <section class="sec" id="notesSec">
-    <div class="sechead"><h2>Anotador de distracciones</h2><span class="hint">Si se te cruza algo, anotalo y seguí leyendo</span></div>
-    <label for="notes" class="hint">Ideas, pendientes, dudas para preguntar después</label>
-    <textarea id="notes" placeholder="Ej.: contestar un mensaje · preguntar dosis de amoxicilina en otitis"></textarea>
+
+  </aside>
+  </div>
+
+  <section class="sec" id="idxSec">
+    <div class="sechead"><h2>Índice de temas</h2><span class="hint">Páginas según la numeración [n] del cuadernillo</span></div>
+    <div class="row" style="justify-content:flex-start;align-items:center">
+      <button class="btn" id="markPrev">Ya leí algunos temas</button>
+      <span class="hint" id="markPrevHint" hidden>Tildá lo que ya leíste, tema por tema o con «Marcar todo el capítulo». El plan se recalcula con lo que te falta.</span>
+    </div>
+    <div id="index" class="sec" style="gap:8px"></div>
   </section>
 
   <details class="plain" id="planBox">
@@ -279,8 +282,6 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <span class="hint" id="resetConfirm" hidden>¿Seguro? <button class="btn" id="resetYes">Sí, borrar</button> <button class="btn" id="resetNo">Cancelar</button></span>
     </div>
   </details>
-  </aside>
-  </div>
 </div>
 
 
@@ -463,7 +464,6 @@ function render(){
       li.innerHTML=`<span class="tag ${c}">${c==="rep"?"Repasar":"Flojo"}</span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span><button class="pick" data-pick="${x.id}">Leer</button>`;u.appendChild(li)});
     rl.appendChild(u)}
 
-  if(document.activeElement!==$("notes"))$("notes").value=S.notas||"";
   $("cExam").value=EXAM;$("cIni").value=S.config.inicio;$("cFin").value=S.config.fin;$("cRest").value=S.config.descanso;$("cOrd").value=S.config.orden||"mix";
   $("pomos").textContent=`${(S.pomos||{})[t]||0} bloques hoy`;
   $("whereSaved").textContent=ref?"Tu progreso es solo tuyo: se guarda en tu cuenta y nadie más lo ve.":"Tu progreso se guarda en este navegador. Si cambiás de dispositivo o borrás los datos del navegador, se pierde.";
@@ -547,7 +547,6 @@ document.addEventListener("change",e=>{
   if(cb.id==="cRest"){S.config.descanso=cb.value;persist();render()}
   if(cb.id==="cOrd"){S.config.orden=cb.value;current=null;persist();render()}
 });
-let nt=null;$("notes").addEventListener("input",e=>{S.notas=e.target.value;clearTimeout(nt);nt=setTimeout(persist,900)});
 // ---------- modo diurno / nocturno ----------
 const TK=LS+"-theme";
 const isDark=()=>{const a=document.documentElement.getAttribute("data-theme");return a?a==="dark":matchMedia("(prefers-color-scheme: dark)").matches};

@@ -8,7 +8,6 @@ Plan de estudio del cuadernillo de Medicina Familiar 2026, tema por tema:
 - Los temas leídos salen de la lista de hoy; se pueden agregar temas a la lista.
 - Marcar lo que ya leíste (tema por tema o capítulos enteros) y el plan se recalcula.
 - Temporizador de bloques de estudio (15/5, 25/5, 45/10).
-- Anotador de distracciones.
 - Botón de modo diurno / nocturno.
 - Reproductor de Spotify o Apple Music junto al temporizador (cada persona pega su playlist).
 
