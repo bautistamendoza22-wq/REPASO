@@ -286,8 +286,8 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
       <div id="mineBox" class="minebox" hidden>
         <label for="mName">Nombre de la lista (aparece como título)
           <input id="mName" maxlength="60" placeholder="Ej.: Clínica Médica"></label>
-        <label for="mText">Tus temas: uno por renglón. Para agrupar, escribí el capítulo con # adelante. Las páginas son opcionales, después de una barra |
-          <textarea id="mText" spellcheck="false" placeholder="# Cardiología&#10;Hipertensión arterial | 12-15&#10;Insuficiencia cardíaca | 16&#10;# Neumonología&#10;Asma&#10;EPOC"></textarea></label>
+        <label for="mText">Tus temas, uno por renglón
+          <textarea id="mText" spellcheck="false" placeholder="Neumonía&#10;Insuficiencia cardíaca&#10;Diabetes&#10;Hipotiroidismo&#10;Anemia"></textarea></label>
         <div class="row" style="justify-content:flex-start;align-items:center"><button class="btn primary" id="mUse" type="button">Usar esta lista</button><span class="hint" id="mMsg" aria-live="polite"></span></div>
       </div>
       <p class="hint">Cada lista guarda su propio progreso y sus propias fechas. Podés volver al cuadernillo cuando quieras.</p>
@@ -333,21 +333,16 @@ function finishBuild(){BY=Object.fromEntries(TOPICS.map(t=>[t.id,t]));
 function buildCuad(){TOPICS=[];CHAPS=[];HASPAGES=true;
   RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci});CHAPS[ci].ids.push(id)})});
   TOPICS.forEach((t,i)=>{const nx=i<TOPICS.length-1?TOPICS[i+1].p:LAST_PAGE+1;t.end=Math.max(t.p,nx-1);t.w=Math.max(.5,nx-t.p)});finishBuild()}
-// formato: «# Capítulo» y un tema por renglón; páginas opcionales tras «|» (12 o 12-15)
-function parseList(text){const out=[];let cur=null;
-  (text||"").split(/\r?\n/).forEach(raw=>{let l=raw.trim();if(!l)return;
-    if(/^#+\s*/.test(l)){const name=l.replace(/^#+\s*/,"").trim();if(name){cur=[name,[]];out.push(cur)}return}
-    l=l.replace(/^([-•*·]|\d+[.)])\s+/,"");if(!l)return;
-    let n=l,p=null,e=null;const m=l.match(/^(.*?)\s*[|\t]\s*(?:p[áa]gs?\.?\s*)?(\d{1,4})(?:\s*[-–]\s*(\d{1,4}))?\s*$/i);
-    if(m&&m[1].trim()){n=m[1].trim();p=+m[2];e=m[3]?+m[3]:p;if(e<p)e=p}
-    if(!cur){cur=["Temas",[]];out.push(cur)}cur[1].push([n.slice(0,140),p,e])});
-  return out.filter(c=>c[1].length)}
+// formato: un tema por renglón, sin capítulos ni páginas
+function parseList(text){const items=[];
+  (text||"").split(/\r?\n/).forEach(raw=>{const l=raw.trim().replace(/^([-•*·#]+|\d+[.)])\s*/,"").trim();if(l)items.push([l.slice(0,140),null,null])});
+  return items.length?[[(S.mine&&S.mine.name)||"Mis temas",items]]:[]}
 function buildMine(chs){TOPICS=[];CHAPS=[];const seen=new Set();const pal=CCOL.slice(1);
   chs.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:pal[ci%pal.length]});
     list.forEach(([n,p,e])=>{let id="u:"+slug(ch)+"/"+slug(n),k=id,j=2;while(seen.has(k))k=id+"~"+j++;seen.add(k);
       TOPICS.push({id:k,n,p,end:e,ci});CHAPS[ci].ids.push(k)})});
   HASPAGES=TOPICS.length>0&&TOPICS.every(t=>t.p);TOPICS.forEach(t=>t.w=HASPAGES?(t.end-t.p+1):1);finishBuild()}
-function ensureTopics(){const mine=S.mode==="mine"&&S.mine&&S.mine.text;const key=mine?"mine|"+S.mine.text:"cuad";
+function ensureTopics(){const mine=S.mode==="mine"&&S.mine&&S.mine.text;const key=mine?"mine|"+(S.mine.name||"")+"|"+S.mine.text:"cuad";
   if(key===_builtKey)return;_builtKey=key;
   if(mine){const chs=parseList(S.mine.text);if(chs.length){buildMine(chs);return}}
   buildCuad()}
@@ -438,7 +433,7 @@ function render(){
   const t=today();
   const mine=S.mode==="mine"&&S.mine&&S.mine.text&&TOPICS[0]&&TOPICS[0].id.startsWith("u:");
   $("ttl").textContent=mine?(S.mine.name||"Mi lista de temas"):"Medicina Familiar";document.title=mine?(S.mine.name||"Mi lista de temas"):"Cuadernillo Medicina Familiar";
-  $("idxHint").textContent=mine?(HASPAGES?"Páginas según tu lista":"Tu lista de temas"):"Páginas según la numeración [n] del cuadernillo";
+  $("idxHint").textContent=mine?"Tu lista de temas":"Páginas según la numeración [n] del cuadernillo";
   $("cList").value=mine?"mine":"cuad";if(mine){if(document.activeElement!==$("mText"))$("mText").value=S.mine.text;if(document.activeElement!==$("mName"))$("mName").value=S.mine.name||""}$("mineBox").hidden=$("cList").value!=="mine"&&!$("mineBox").dataset.force;
   const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
   const EXAM=S.config.examen||EXAM_DEFAULT;
@@ -473,7 +468,7 @@ function render(){
     $("hoyPages").textContent=`≈ ${pages} ${UNIT(pages)}`;
     $("hoyHint").textContent="Tocá «Leer» en un tema para cargarlo en el temporizador. Al marcarlo como leído, sale de la lista.";
     fillToday(ul,p.items,t);
-    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
+    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ${p.per<0.95?`≈ 1 ${UNIT(1)} cada ${Math.round(1/p.per)} días`:`≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`}`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
   if(current&&(S.temas[current]||{}).d)current=null;
   if(!current&&ul.querySelector("li[data-id]:not(.done)"))selectTopic(ul.querySelector("li[data-id]:not(.done)").dataset.id,false);
@@ -613,7 +608,7 @@ $("mUse").onclick=()=>{const text=$("mText").value;const chs=parseList(text);
   if(!chs.length){$("mMsg").textContent="Pegá al menos un tema (uno por renglón).";return}
   const n=chs.reduce((a,c)=>a+c[1].length,0);
   S.mine={name:$("mName").value.trim(),text};switchMode("mine");_builtKey=null;persist();render();
-  $("mMsg").textContent=`Lista cargada: ${n} temas en ${chs.length} ${chs.length===1?"capítulo":"capítulos"}.`;
+  $("mMsg").textContent=`Lista cargada: ${n} ${n===1?"tema":"temas"}.`;
   window.scrollTo({top:0,behavior:REDUCED?"auto":"smooth"})};
 // ---------- Música: Spotify o Apple Music ----------
 const SPK=LS+"-spotify";
