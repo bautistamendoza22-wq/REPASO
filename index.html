@@ -98,6 +98,11 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .todo li[data-id] .pick{color:var(--cct)}
 .todo li[data-id] .pick:hover{background:color-mix(in oklab,var(--cc) 14%,transparent)}
 .todo li[data-id].on{background:color-mix(in oklab,var(--cc) 16%,var(--surface));border-color:var(--cc)}
+.music{width:100%;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px;text-align:left}
+.music iframe{width:100%;height:152px;border:0;border-radius:12px;display:block}
+.spform{display:flex;flex-direction:column;gap:6px}
+.spform input{flex:1;min-width:0;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+.sp-empty{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 /* animaciones */
 @keyframes inUp{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
@@ -136,7 +141,6 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow" id="eyebrow">Cuadernillo 2026</div>
       <h1>Medicina Familiar</h1>
     </div>
     <div class="row" style="align-items:center;justify-content:flex-end">
@@ -196,6 +200,18 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
         </div>
       </div>
       <div class="pomos" id="pomos">0 bloques hoy</div>
+      <div class="music" aria-label="Música">
+        <div class="sechead" style="width:100%"><strong>Música para estudiar</strong><button class="pick" id="spEdit">Cambiar</button></div>
+        <div id="spBox"></div>
+        <form id="spForm" class="spform" hidden>
+          <label for="spUrl" class="hint">Pegá el link de una playlist, álbum o canción de Spotify</label>
+          <div class="row" style="flex-wrap:nowrap;justify-content:flex-start">
+            <input id="spUrl" type="text" inputmode="url" autocomplete="off" placeholder="https://open.spotify.com/playlist/…">
+            <button class="btn primary" type="submit">Guardar</button>
+          </div>
+          <p class="hint" id="spMsg" aria-live="polite"></p>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -361,7 +377,6 @@ function render(){
   const t=today();
   const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
   const EXAM=S.config.examen||EXAM_DEFAULT;
-  $("eyebrow").textContent="Cuadernillo 2026 · examen "+parse(EXAM).toLocaleDateString("es-AR",{day:"numeric",month:"long"});
   $("sExam").textContent=Math.max(0,diff(t,EXAM));
   const df=diff(t,S.config.fin);
   $("sFin").textContent=df>=0?df+1:"✓";
@@ -521,6 +536,26 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
+// ---------- Spotify ----------
+const SPK=LS+"-spotify";
+function spParse(u){u=(u||"").trim();let m=u.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)/);
+  if(!m)m=u.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/);
+  return m?{type:m[1],id:m[2]}:null}
+// el reproductor embebido funciona en el sitio publicado (GitHub); dentro de Claude se ofrece el link
+const canEmbed=/github\.io$/.test(location.hostname);
+function spRender(){let v=null;try{v=JSON.parse(localStorage.getItem(SPK)||"null")}catch(e){}
+  const box=$("spBox");box.innerHTML="";
+  if(!v){box.innerHTML='<div class="sp-empty"><p class="hint">Todavía no elegiste música. Tocá «Cambiar» y pegá el link de tu playlist de Spotify.</p></div>';return}
+  const open=`https://open.spotify.com/${v.type}/${v.id}`;
+  if(canEmbed){const f=document.createElement("iframe");f.src=`https://open.spotify.com/embed/${v.type}/${v.id}?utm_source=generator`;f.loading="lazy";f.title="Reproductor de Spotify";f.allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";box.appendChild(f)}
+  else{const a=document.createElement("a");a.href=open;a.target="_blank";a.rel="noopener";a.className="btn primary";a.style.textDecoration="none";a.textContent="Abrir mi playlist en Spotify";box.appendChild(a)}
+}
+$("spEdit").onclick=()=>{$("spForm").hidden=!$("spForm").hidden;if(!$("spForm").hidden)$("spUrl").focus()};
+$("spForm").addEventListener("submit",e=>{e.preventDefault();const v=spParse($("spUrl").value);
+  if(!v){$("spMsg").textContent="Ese link no parece de Spotify. Copialo desde Spotify con «Compartir → Copiar enlace».";return}
+  try{localStorage.setItem(SPK,JSON.stringify(v))}catch(e){}
+  $("spMsg").textContent="";$("spUrl").value="";$("spForm").hidden=true;spRender()});
+spRender();
 $("addBtn").onclick=()=>{const id=$("addSel").value;if(id)addToday(id);else $("addSel").focus()};
 $("addRnd").onclick=()=>{const pool=TOPICS.filter(x=>!(S.temas[x.id]||{}).d&&!TODAY.has(x.id));
   if(!pool.length){$("hoyHint").textContent="No quedan temas sin leer para sumar.";return}
