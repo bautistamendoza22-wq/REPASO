@@ -49,6 +49,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 header{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:flex-start;gap:12px}
 header>div:first-child{min-width:0}
 #themeBtn{flex:none;white-space:nowrap}
+.hbtns{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;flex:none;max-width:60%}
+.hbtns .btn{white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+@media (max-width:600px){
+  header{flex-wrap:wrap}
+  .hbtns{display:contents}
+  header>div:first-child{flex:1;order:1}
+  #themeBtn{order:2}
+  #casosBtn{order:3;width:100%;justify-content:center}
+}
 .save{font-size:.8rem;color:var(--muted)}
 .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 14px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
@@ -171,7 +180,10 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
     <div>
       <h1 id="ttl">Medicina Familiar</h1>
     </div>
-    <button class="btn" id="themeBtn" aria-label="Cambiar entre modo diurno y nocturno">Modo nocturno</button>
+    <div class="hbtns">
+      <a class="btn primary" id="casosBtn" href="https://bautistamendoza22-wq.github.io/casos-medicina-familiar/" target="_blank" rel="noopener">Practicar casos clínicos <span aria-hidden="true">↗</span></a>
+      <button class="btn" id="themeBtn" aria-label="Cambiar entre modo diurno y nocturno">Modo nocturno</button>
+    </div>
     <div class="save" id="save" hidden></div>
   </header>
 
@@ -432,6 +444,7 @@ function render(){
   ensureTopics();if(current&&!BY[current])current=null;
   const t=today();
   const mine=S.mode==="mine"&&S.mine&&S.mine.text&&TOPICS[0]&&TOPICS[0].id.startsWith("u:");
+  $("casosBtn").hidden=!!mine;
   $("ttl").textContent=mine?(S.mine.name||"Mi lista de temas"):"Medicina Familiar";document.title=mine?(S.mine.name||"Mi lista de temas"):"Cuadernillo Medicina Familiar";
   $("idxHint").textContent=mine?"Tu lista de temas":"Páginas según la numeración [n] del cuadernillo";
   $("cList").value=mine?"mine":"cuad";if(mine){if(document.activeElement!==$("mText"))$("mText").value=S.mine.text;if(document.activeElement!==$("mName"))$("mName").value=S.mine.name||""}$("mineBox").hidden=$("cList").value!=="mine"&&!$("mineBox").dataset.force;
