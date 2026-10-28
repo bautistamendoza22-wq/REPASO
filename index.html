@@ -9,14 +9,14 @@
 <title>Cuadernillo Medicina Familiar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Literata:opsz,wght@7..72,500;7..72,700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: una columna calma; arriba "qué toca hoy" + temporizador, abajo el índice del impreso como checklist. */
 :root{
   --bg:#e8e3d7; --surface:#f5f1e6; --ink:#2a2620; --muted:#635d52; --line:#d5cdbb;
   --accent:#145c50; --accent-ink:#ffffff; --accent-soft:#dbe6dc;
   --ok:#1d7a3e; --ok-soft:#dfecd9; --warn:#8a5a00; --warn-soft:#f1e6cc; --bad:#b3261e; --bad-soft:#f1dcd3; --mixc:var(--ink); --mixp:0%;
-  --f-display:"Literata",Georgia,serif; --f-body:"Atkinson Hyperlegible",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+  --f-display:"Literata",Georgia,serif; --f-body:"Fredoka",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#000000; --surface:#121212; --ink:#ece8e1; --muted:#a29d94; --line:#2c2c2c;
@@ -92,6 +92,11 @@ header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end
 .addrow select{flex:1;min-width:0;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
 .cf.add{border-color:var(--accent);color:var(--accent);font-weight:700}
 .todo li.empty{border-style:dashed;color:var(--muted);font-style:normal;font-size:.9rem}
+.todo li[data-id]{--cc:color-mix(in oklab,var(--c) calc(100% - var(--mixp)),var(--mixc));--cct:color-mix(in oklab,var(--cc) 78%,var(--ink));border-color:color-mix(in oklab,var(--cc) 40%,var(--line));background:color-mix(in oklab,var(--cc) 7%,var(--surface));border-left:4px solid var(--cc)}
+.todo li[data-id] input{accent-color:var(--cc)}
+.todo li[data-id] .pick{color:var(--cct)}
+.todo li[data-id] .pick:hover{background:color-mix(in oklab,var(--cc) 14%,transparent)}
+.todo li[data-id].on{background:color-mix(in oklab,var(--cc) 16%,var(--surface));border-color:var(--cc)}
 /* animaciones */
 @keyframes inUp{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
@@ -455,7 +460,7 @@ function addToday(id){const t=today();if(!BY[id])return;
   if(!(S.extra&&S.extra.fecha===t&&Array.isArray(S.extra.ids)))S.extra={fecha:t,ids:[]};
   if(!S.extra.ids.includes(id))S.extra.ids.push(id);persist();render()}
 function todoItem(x,t,extra){
-  const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;
+  const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;li.style.setProperty("--c",CHAPS[x.ci].col);
   li.className=(s.d?"done ":"")+(current===x.id?"on":"");
   li.innerHTML=`<input type="checkbox" data-id="${x.id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}" style="width:20px;height:20px;accent-color:var(--accent)"><span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}<small class="mono">${pgTxt(x)}</small></span>${s.d?"":`<button class="pick" data-pick="${x.id}">Leer</button>`}${extra?`<button class="pick" data-unadd="${x.id}" aria-label="Quitar ${x.n} de hoy">Quitar</button>`:""}`;
   return li;
