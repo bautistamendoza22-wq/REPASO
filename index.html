@@ -29,7 +29,12 @@
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:color-mix(in oklab,var(--c) calc(100% - var(--mixp)),var(--mixc));flex:none}
 .chap>summary h3{display:flex;align-items:center;gap:8px}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+body{background:
+  radial-gradient(55vw 45vh at 92% 4%,color-mix(in oklab,var(--accent) 26%,transparent),transparent 70%),
+  radial-gradient(45vw 55vh at -5% 55%,color-mix(in oklab,#E8A0A8 34%,transparent),transparent 70%),
+  radial-gradient(50vw 45vh at 80% 100%,color-mix(in oklab,#E8B44A 26%,transparent),transparent 70%),
+  radial-gradient(35vw 35vh at 30% -5%,color-mix(in oklab,#F2C3A0 30%,transparent),transparent 70%),
+  var(--bg);background-attachment:fixed;color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
 .wrap{max-width:1360px;margin:0 auto;padding-block:clamp(28px,5vw,52px) 64px;padding-left:max(clamp(16px,4vw,56px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,4vw,56px),env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
 h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;line-height:1.2}
 h1{font-size:clamp(2.4rem,8vw,3.3rem);line-height:1.02;font-weight:400;color:var(--accent)} h2{font-size:1.3rem} h3{font-size:1.05rem}
@@ -232,9 +237,9 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
         <div class="sechead" style="width:100%"><strong>Música para estudiar</strong><button class="pick" id="spEdit">Cambiar</button></div>
         <div id="spBox"></div>
         <form id="spForm" class="spform" hidden>
-          <label for="spUrl" class="hint">Pegá el link de una playlist, álbum o canción de Spotify</label>
+          <label for="spUrl" class="hint">Pegá el link de una playlist, álbum o canción de Spotify o Apple Music</label>
           <div class="row" style="flex-wrap:nowrap;justify-content:flex-start">
-            <input id="spUrl" type="text" inputmode="url" autocomplete="off" placeholder="https://open.spotify.com/playlist/…">
+            <input id="spUrl" type="text" inputmode="url" autocomplete="off" placeholder="open.spotify.com/… o music.apple.com/…">
             <button class="btn primary" type="submit">Guardar</button>
           </div>
           <p class="hint" id="spMsg" aria-live="polite"></p>
@@ -551,23 +556,34 @@ try{applyTheme(localStorage.getItem(TK))}catch(e){applyTheme(null)}
 $("themeBtn").onclick=()=>{const th=isDark()?"light":"dark";applyTheme(th);try{localStorage.setItem(TK,th)}catch(e){}};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme(null));
 function todayIds(){return TODAY}
-// ---------- Spotify ----------
+// ---------- Música: Spotify o Apple Music ----------
 const SPK=LS+"-spotify";
-function spParse(u){u=(u||"").trim();let m=u.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)/);
+function spParse(u){u=(u||"").trim();
+  let m=u.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)/);
   if(!m)m=u.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/);
-  return m?{type:m[1],id:m[2]}:null}
-// el reproductor embebido funciona en el sitio publicado (GitHub); dentro de Claude se ofrece el link
+  if(m)return{svc:"spotify",type:m[1],id:m[2]};
+  m=u.match(/music\.apple\.com\/([a-z]{2})\/(playlist|album|song|station|music-video)\/([^\s#]+)/);
+  if(m){const rest=m[3].replace(/[^A-Za-z0-9._~\-\/%?=&]/g,"");return{svc:"apple",type:m[2],path:`${m[1]}/${m[2]}/${rest}`}}
+  return null}
+// el reproductor integrado funciona en el sitio publicado (GitHub); dentro de Claude se ofrece el link
 const canEmbed=/github\.io$/.test(location.hostname);
 function spRender(){let v=null;try{v=JSON.parse(localStorage.getItem(SPK)||"null")}catch(e){}
+  if(v&&!v.svc)v.svc="spotify";
   const box=$("spBox");box.innerHTML="";
-  if(!v){box.innerHTML='<div class="sp-empty"><p class="hint">Todavía no elegiste música. Tocá «Cambiar» y pegá el link de tu playlist de Spotify.</p></div>';return}
-  const open=`https://open.spotify.com/${v.type}/${v.id}`;
-  if(canEmbed){const f=document.createElement("iframe");f.src=`https://open.spotify.com/embed/${v.type}/${v.id}?utm_source=generator`;f.loading="lazy";f.title="Reproductor de Spotify";f.allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";box.appendChild(f)}
-  else{const a=document.createElement("a");a.href=open;a.target="_blank";a.rel="noopener";a.className="btn primary";a.style.textDecoration="none";a.textContent="Abrir mi playlist en Spotify";box.appendChild(a)}
+  if(!v){box.innerHTML='<div class="sp-empty"><p class="hint">Todavía no elegiste música. Tocá «Cambiar» y pegá el link de tu playlist de Spotify o Apple Music.</p></div>';return}
+  const apple=v.svc==="apple";
+  const open=apple?`https://music.apple.com/${v.path}`:`https://open.spotify.com/${v.type}/${v.id}`;
+  if(canEmbed){const f=document.createElement("iframe");f.loading="lazy";
+    if(apple){f.src=`https://embed.music.apple.com/${v.path}`;f.title="Reproductor de Apple Music";f.allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write";
+      f.setAttribute("sandbox","allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation");
+      f.style.height=(v.type==="song"||/[?&]i=/.test(v.path))?"175px":"380px"}
+    else{f.src=`https://open.spotify.com/embed/${v.type}/${v.id}?utm_source=generator`;f.title="Reproductor de Spotify";f.allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"}
+    box.appendChild(f)}
+  else{const a=document.createElement("a");a.href=open;a.target="_blank";a.rel="noopener";a.className="btn primary";a.style.textDecoration="none";a.textContent=apple?"Abrir mi música en Apple Music":"Abrir mi playlist en Spotify";box.appendChild(a)}
 }
 $("spEdit").onclick=()=>{$("spForm").hidden=!$("spForm").hidden;if(!$("spForm").hidden)$("spUrl").focus()};
 $("spForm").addEventListener("submit",e=>{e.preventDefault();const v=spParse($("spUrl").value);
-  if(!v){$("spMsg").textContent="Ese link no parece de Spotify. Copialo desde Spotify con «Compartir → Copiar enlace».";return}
+  if(!v){$("spMsg").textContent="Ese link no parece de Spotify ni de Apple Music. Copialo desde la app con «Compartir → Copiar enlace».";return}
   try{localStorage.setItem(SPK,JSON.stringify(v))}catch(e){}
   $("spMsg").textContent="";$("spUrl").value="";$("spForm").hidden=true;spRender()});
 spRender();
