@@ -402,7 +402,9 @@ const pgTxt=t=>!t.p?"":t.end>t.p?`págs. ${t.p}–${t.end}`:`pág. ${t.p}`;
 // ---------- estado ----------
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
-const today=()=>iso(new Date());
+// el día de estudio cambia a las 3 a. m. (hasta las 2:59 cuenta como el día anterior)
+const DAY_START_H=3;
+const today=()=>iso(new Date(Date.now()-DAY_START_H*3600e3));
 const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 function studyDays(from,to){const r=[];const rest=S.config.descanso;let d=parse(from);const end=parse(to);while(d<=end){if(rest===""||String(d.getDay())!==rest)r.push(iso(d));d.setDate(d.getDate()+1)}return r}
 const fmtDay=s=>parse(s).toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"});
