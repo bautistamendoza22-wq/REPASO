@@ -199,7 +199,8 @@ header,.strip .stat,.main>.panel,.side>.timer,#repSec,#idxSec,#planBox{animation
 .cf[data-v="flojo"][aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
 .cf[data-v="rep"][aria-pressed="true"]{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
 .tag{font-size:.72rem;font-weight:700;border-radius:4px;padding:1px 6px}
-.tag.flojo{background:var(--warn-soft);color:var(--warn)} .tag.rep{background:var(--bad-soft);color:var(--bad)} .tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.flojo{background:var(--warn-soft);color:var(--warn)}
+.upd{display:inline-block;vertical-align:middle;margin-left:6px;font-size:.66rem;font-weight:700;letter-spacing:.02em;line-height:1.5;border-radius:999px;padding:0 7px;background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);white-space:nowrap;cursor:help} .tag.rep{background:var(--bad-soft);color:var(--bad)} .tag.ok{background:var(--ok-soft);color:var(--ok)}
 .sec{display:flex;flex-direction:column;gap:12px}
 .sechead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
 textarea{width:100%;min-height:110px;font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
@@ -360,6 +361,9 @@ details.plain>summary{cursor:pointer;color:var(--muted);font-weight:700}
 
 <script>
 const EXAM_DEFAULT="2026-12-05";
+// temas cuya información del cuadernillo fue actualizada con una guía más nueva
+const UPD={"Problemas frecuentes en pediatría":"Roma V 2026","Control de embarazo":"Consenso FASGO 2025","Asma":"GINA 2026","EPOC":"GOLD 2026","Tuberculosis":"Pautas técnicas de TB 2026","Infecciones de piel no supurativas":"Guía SADI de IPPB 2025","Infecciones de piel supurativas":"Guía SADI de IPPB 2025","Diabetes":"Guía SAD de DM2 2025","Hipertensión arterial":"GPC Nacional de HTA 2026","Insuficiencia cardíaca":"Guías ESC 2026","Síndrome coronario agudo":"Guías ESC 2026","Dolor abdominal":"Roma V 2026","Dispepsia":"Roma V 2026","Síndrome de intestino irritable":"Roma V 2026","Constipación":"Roma V 2026","Diarrea crónica":"Roma V 2026","Cólico biliar":"Roma V 2026","ITU – Pielonefritis":"IDSA 2025","Prostatitis":"IDSA 2025","Insuficiencia renal crónica":"Guías ESC 2026","Anemia":"OMS 2024","Heridas post inundación":"Guía SADI de IPPB 2025"};
+const updTag=x=>x&&x.u?`<span class="upd" title="Actualizado con ${x.u}">Actualizado</span>`:"";
 const RAW=[
 ["Vacunas",[["Vacunas",3]]],
 ["Controles de salud",[["Control niño sano menor de 1 año",5],["Problemas frecuentes en pediatría",10],["Control niño sano 4-5",12],["Control 6 a 12 años",13],["Adolescencia",14],["Apto físico",17],["Atención integral de la persona trans",18],["Baja talla",22],["Control de salud adulto",23],["Control de adulto mayor (>65 años)",27],["Queja cognitiva",32],["Caídas en el adulto mayor",37],["Osteoporosis",38]]],
@@ -387,7 +391,7 @@ function finishBuild(){BY=Object.fromEntries(TOPICS.map(t=>[t.id,t]));
   // orden intercalado: un tema de cada capítulo por turno, respetando el orden interno de cada capítulo
   const q=CHAPS.map(c=>c.ids.slice());MIX=[];while(q.some(a=>a.length))q.forEach(a=>{if(a.length)MIX.push(BY[a.shift()])})}
 function buildCuad(){TOPICS=[];CHAPS=[];HASPAGES=true;
-  RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci});CHAPS[ci].ids.push(id)})});
+  RAW.forEach(([ch,list],ci)=>{CHAPS.push({name:ch,ids:[],col:CCOL[ci]});list.forEach(([n,p])=>{const id="t"+String(TOPICS.length+1).padStart(3,"0");TOPICS.push({id,n,p,ci,u:UPD[n]||""});CHAPS[ci].ids.push(id)})});
   TOPICS.forEach((t,i)=>{const nx=i<TOPICS.length-1?TOPICS[i+1].p:LAST_PAGE+1;t.end=Math.max(t.p,nx-1);t.w=Math.max(.5,nx-t.p)});finishBuild()}
 // formato: un tema por renglón, sin capítulos ni páginas
 function parseList(text){const items=[];
@@ -550,7 +554,7 @@ function render(){
     const ul2=d.querySelector("ul");
     ch.ids.forEach(id=>{const x=BY[id];const s=S.temas[id]||{};
       const li=document.createElement("li");li.className="t"+(s.d?" done":"");
-      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${!s.d&&!TODAY.has(id)?`<button class="cf add" data-add="${id}">+ Hoy</button>`:""}</div>`;
+      li.innerHTML=`<input type="checkbox" id="cb-${id}" data-id="${id}" ${s.d?"checked":""} aria-label="Leído: ${x.n}"><label class="nm" for="cb-${id}">${x.n}${updTag(x)}</label><span class="pg">${pgTxt(x)}</span><div class="conf">${confButtons(id)}${!s.d&&!TODAY.has(id)?`<button class="cf add" data-add="${id}">+ Hoy</button>`:""}</div>`;
       ul2.appendChild(li)});
     if(!REDUCED)d.addEventListener("toggle",()=>{if(d.open){[...d.children].slice(1).forEach(el=>{el.classList.remove("opening");void el.offsetWidth;el.classList.add("opening")})}});
     ix.appendChild(d)});
@@ -561,7 +565,7 @@ function render(){
   if(rep.length){const u=document.createElement("ul");u.className="todo";
     rep.sort((a,b)=>((S.temas[a.id].c==="rep")?0:1)-((S.temas[b.id].c==="rep")?0:1));
     rep.forEach(x=>{const c=S.temas[x.id].c;const li=document.createElement("li");li.dataset.id=x.id;
-      li.innerHTML=`<span class="tag ${c}">${c==="rep"?"Repasar":"Flojo"}</span><span class="nm">${x.n}</span><span class="pg mono">${pgTxt(x)}</span><button class="pick" data-pick="${x.id}">Leer</button>`;u.appendChild(li)});
+      li.innerHTML=`<span class="tag ${c}">${c==="rep"?"Repasar":"Flojo"}</span><span class="nm">${x.n}${updTag(x)}</span><span class="pg mono">${pgTxt(x)}</span><button class="pick" data-pick="${x.id}">Leer</button>`;u.appendChild(li)});
     rl.appendChild(u)}
 
   $("cExam").value=EXAM;$("cIni").value=S.config.inicio;$("cFin").value=S.config.fin;$("cRest").value=S.config.descanso;$("cOrd").value=S.config.orden||"mix";
@@ -600,7 +604,7 @@ function addToday(id){const t=today();if(!BY[id])return;
 function todoItem(x,t,extra){
   const s=S.temas[x.id]||{};const li=document.createElement("li");li.dataset.id=x.id;li.style.setProperty("--c",CHAPS[x.ci].col);
   li.className=(s.d?"done ":"")+(current===x.id?"on":"");
-  li.innerHTML=`<span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}<small class="mono">${pgTxt(x)}</small></span><span class="acts"><button class="pick" data-pick="${x.id}">Leer</button><button class="act done-btn" data-done="${x.id}" aria-label="Ya leí ${x.n}">✓ Ya lo leí</button><button class="act" ${extra?`data-unadd="${x.id}"`:`data-skip="${x.id}"`} aria-label="Sacar ${x.n} de hoy">Hoy no</button></span>`;
+  li.innerHTML=`<span class="dot" style="--c:${CHAPS[x.ci].col}" title="${CHAPS[x.ci].name}"></span><span class="nm">${x.n}${updTag(x)}<small class="mono">${pgTxt(x)}</small></span><span class="acts"><button class="pick" data-pick="${x.id}">Leer</button><button class="act done-btn" data-done="${x.id}" aria-label="Ya leí ${x.n}">✓ Ya lo leí</button><button class="act" ${extra?`data-unadd="${x.id}"`:`data-skip="${x.id}"`} aria-label="Sacar ${x.n} de hoy">Hoy no</button></span>`;
   return li;
 }
 
