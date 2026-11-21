@@ -471,7 +471,20 @@ async function flush(){
 function planToday(){
   const t=today(),c=S.config;
   const start=t<c.inicio?c.inicio:t;
-  if(start>c.fin)return{phase:"repaso",items:[],day:start};
+  if(start>c.fin){
+    // pasó la fecha de la 1ª vuelta: si quedan temas sin leer, sigue la lectura como días de atraso (no pasa al repaso)
+    const pend=ORDER().filter(x=>{const s=S.temas[x.id];return !s||!s.d||(s.d===t&&!s.pre)});
+    if(!pend.length)return{phase:"repaso",items:[],day:start};
+    const d0=parse(c.fin);d0.setDate(d0.getDate()+1);const late=studyDays(iso(d0),t).length;
+    const left=pend.filter(x=>!(S.temas[x.id]||{}).d).length;
+    if(!studyDays(t,t).length){const nx=parse(t);nx.setDate(nx.getDate()+1);return{phase:"descanso",items:[],day:iso(nx),late,left};}
+    const per=TOPICS.reduce((a,x)=>a+x.w,0)/Math.max(1,studyDays(c.inicio,c.fin).length);
+    let items=[];let acc=0;
+    for(const x of pend){if(items.length&&acc+x.w/2>per)break;items.push(x);acc+=x.w}
+    const random=S.hoy&&S.hoy.fecha===t&&Array.isArray(S.hoy.ids);
+    if(random)items=S.hoy.ids.map(id=>BY[id]).filter(Boolean);
+    return{phase:"lectura",items,day:t,per,pool:pend,random,late,left};
+  }
   const days=studyDays(start,c.fin);
   // cuentan para hoy: los no leídos y los leídos hoy como parte del plan (no los marcados como «ya leído antes»)
   const pool=ORDER().filter(x=>{const s=S.temas[x.id];return !s||!s.d||(s.d===t&&!s.pre)});
@@ -503,13 +516,14 @@ function render(){
   const done=TOPICS.filter(x=>(S.temas[x.id]||{}).d).length;
   const EXAM=S.config.examen||EXAM_DEFAULT;
   $("sExam").textContent=Math.max(0,diff(t,EXAM));
-  const df=diff(t,S.config.fin);
+  const df=diff(t,S.config.fin);const p=planToday();
+  if(p.late!==undefined){$("sFin").textContent=p.late;$("sFinLbl").textContent=`${p.late===1?"día":"días"} de atraso: la 1ª vuelta terminaba el ${parse(S.config.fin).toLocaleDateString("es-AR",{day:"numeric",month:"numeric"})}`;}else{
   $("sFin").textContent=df>=0?df+1:"✓";
-  $("sFinLbl").textContent=df>=0?`días para terminar la 1ª vuelta (${parse(S.config.fin).toLocaleDateString("es-AR",{day:"numeric",month:"numeric"})})`:"1ª vuelta: etapa de repaso";
+  $("sFinLbl").textContent=df>=0?`días para terminar la 1ª vuelta (${parse(S.config.fin).toLocaleDateString("es-AR",{day:"numeric",month:"numeric"})})`:"1ª vuelta: etapa de repaso";}
   $("sPct").textContent=`${done}/${TOPICS.length}`;
   $("sBar").style.width=(done/TOPICS.length*100)+"%";
 
-  const p=planToday();const ul=$("todo");ul.innerHTML="";
+  const ul=$("todo");ul.innerHTML="";
   $("late").hidden=true;
   $("rnd").hidden=p.phase==="descanso";$("rnd").textContent=p.random?"Sortear otros temas":"Temas al azar para hoy";
   $("rndBack").hidden=!p.random;
@@ -526,14 +540,16 @@ function render(){
   }else if(p.phase==="descanso"){
     $("hoyTitle").textContent="Hoy descansás";$("hoyPages").textContent="";
     $("hoyHint").textContent=`Lo próximo, ${fmtDay(p.day)}. Igual podés agregar un tema si querés estudiar.`;
+    if(p.late!==undefined){$("late").hidden=false;$("late").textContent=`Vas ${p.late} ${p.late===1?"día":"días"} atrasado: te ${p.left===1?"queda 1 tema":"quedan "+p.left+" temas"} sin leer de la 1ª vuelta. El repaso empieza cuando los termines.`;$("late").style.color="";$("late").style.fontWeight="";}
     fillToday(ul,p.items,t);
   }else{
     const pages=Math.round(p.items.reduce((a,x)=>a+x.w,0));
-    $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.random?" · al azar":"");
+    $("hoyTitle").textContent=(t<S.config.inicio?`Primer día: ${fmtDay(p.day)}`:"Hoy")+(p.late!==undefined?" · atrasado":"")+(p.random?" · al azar":"");
     $("hoyPages").textContent=`≈ ${pages} ${UNIT(pages)}`;
     $("hoyHint").textContent="«Leer» lo carga en el temporizador. «Ya lo leí» lo marca como leído y «Hoy no» lo pasa a otro día; en los dos casos sale de la lista.";
     fillToday(ul,p.items,t);
-    if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ${p.per<0.95?`≈ 1 ${UNIT(1)} cada ${Math.round(1/p.per)} días`:`≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`}`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
+    if(p.late!==undefined){$("late").hidden=false;$("late").textContent=`Vas ${p.late} ${p.late===1?"día":"días"} atrasado: te ${p.left===1?"queda 1 tema":"quedan "+p.left+" temas"} sin leer de la 1ª vuelta. Seguís leyendo al ritmo del plan; el repaso empieza cuando los termines.`;$("late").style.color="";$("late").style.fontWeight="";}
+    else if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ${p.per<0.95?`≈ 1 ${UNIT(1)} cada ${Math.round(1/p.per)} días`:`≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`}`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
   if(current&&(S.temas[current]||{}).d)current=null;
   if(!current&&ul.querySelector("li[data-id]:not(.done)"))selectTopic(ul.querySelector("li[data-id]:not(.done)").dataset.id,false);
