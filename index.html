@@ -478,12 +478,11 @@ function planToday(){
     const d0=parse(c.fin);d0.setDate(d0.getDate()+1);const late=studyDays(iso(d0),t).length;
     const left=pend.filter(x=>!(S.temas[x.id]||{}).d).length;
     if(!studyDays(t,t).length){const nx=parse(t);nx.setDate(nx.getDate()+1);return{phase:"descanso",items:[],day:iso(nx),late,left};}
-    const per=TOPICS.reduce((a,x)=>a+x.w,0)/Math.max(1,studyDays(c.inicio,c.fin).length);
-    let items=[];let acc=0;
-    for(const x of pend){if(items.length&&acc+x.w/2>per)break;items.push(x);acc+=x.w}
+    // atrasado: todos los temas pendientes en la lista de hoy, para avanzar al propio ritmo
+    let items=pend.slice();
     const random=S.hoy&&S.hoy.fecha===t&&Array.isArray(S.hoy.ids);
     if(random)items=S.hoy.ids.map(id=>BY[id]).filter(Boolean);
-    return{phase:"lectura",items,day:t,per,pool:pend,random,late,left};
+    return{phase:"lectura",items,day:t,pool:pend,random,late,left};
   }
   const days=studyDays(start,c.fin);
   // cuentan para hoy: los no leídos y los leídos hoy como parte del plan (no los marcados como «ya leído antes»)
@@ -548,7 +547,7 @@ function render(){
     $("hoyPages").textContent=`≈ ${pages} ${UNIT(pages)}`;
     $("hoyHint").textContent="«Leer» lo carga en el temporizador. «Ya lo leí» lo marca como leído y «Hoy no» lo pasa a otro día; en los dos casos sale de la lista.";
     fillToday(ul,p.items,t);
-    if(p.late!==undefined){$("late").hidden=false;$("late").textContent=`Vas ${p.late} ${p.late===1?"día":"días"} atrasado: te ${p.left===1?"queda 1 tema":"quedan "+p.left+" temas"} sin leer de la 1ª vuelta. Seguís leyendo al ritmo del plan; el repaso empieza cuando los termines.`;$("late").style.color="";$("late").style.fontWeight="";}
+    if(p.late!==undefined){$("late").hidden=false;$("late").textContent=`Vas ${p.late} ${p.late===1?"día":"días"} atrasado: te ${p.left===1?"queda 1 tema":"quedan "+p.left+" temas"} sin leer de la 1ª vuelta. Tenés todos en la lista de hoy para avanzar a tu ritmo; el repaso empieza cuando los termines.`;$("late").style.color="";$("late").style.fontWeight="";}
     else if(p.remainingDays){$("late").hidden=false;$("late").textContent=`${p.remainingDays} días de estudio por delante · ${p.per<0.95?`≈ 1 ${UNIT(1)} cada ${Math.round(1/p.per)} días`:`≈ ${Math.round(p.per)} ${UNIT(Math.round(p.per))} por día`}`;$("late").style.color="var(--muted)";$("late").style.fontWeight="400"}
   }
   if(current&&(S.temas[current]||{}).d)current=null;
